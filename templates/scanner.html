@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Scanner</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+      min-height: 100vh;
+      padding: 20px;
+      color: #333;
+    }
+
+    .scanner-container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+      position: relative;
+    }
+
+    .header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="qr-pattern" width="20" height="20" patternUnits="userSpaceOnUse"><rect width="20" height="20" fill="none"/><rect x="2" y="2" width="4" height="4" fill="white" opacity="0.1"/><rect x="14" y="14" width="4" height="4" fill="white" opacity="0.1"/><rect x="8" y="8" width="2" height="2" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23qr-pattern)"/></svg>');
+      pointer-events: none;
+    }
+
+    .header h1 {
+      font-size: 2.2em;
+      font-weight: 300;
+      margin-bottom: 10px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .course-highlight {
+      color: #FFD700;
+      font-weight: 600;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .scanner-section {
+      padding: 40px;
+      text-align: center;
+    }
+
+    .scanner-wrapper {
+      background: #f8f9fa;
+      border-radius: 15px;
+      padding: 20px;
+      margin-bottom: 30px;
+      border: 3px dashed #667eea;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .scanner-wrapper.scanning {
+      border-color: #4facfe;
+      background: #f0f8ff;
+      box-shadow: 0 0 20px rgba(79, 172, 254, 0.2);
+    }
+
+    #reader {
+      width: 320px !important;
+      margin: auto !important;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    #result {
+      background: white;
+      border-radius: 15px;
+      padding: 25px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+      border-left: 5px solid #667eea;
+      text-align: left;
+      line-height: 1.6;
+    }
+
+    .progress-bar {
+      background: #e9ecef;
+      border-radius: 10px;
+      height: 8px;
+      margin: 20px 0;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      background: linear-gradient(90deg, #4facfe, #00f2fe);
+      height: 100%;
+      border-radius: 10px;
+      transition: width 0.5s ease;
+      width: 0%;
+    }
+
+    .progress-text {
+      font-size: 0.9em;
+      color: #666;
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    .qr-list {
+      margin: 15px 0;
+    }
+
+    .qr-list ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .qr-list li {
+      background: #f8f9fa;
+      margin: 8px 0;
+      padding: 12px 15px;
+      border-radius: 8px;
+      border-left: 4px solid #28a745;
+      font-family: 'Courier New', monospace;
+      transition: all 0.3s ease;
+    }
+
+    .qr-list li:hover {
+      background: #e9f7ef;
+      transform: translateX(5px);
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.85em;
+      font-weight: 500;
+      margin: 5px 0;
+    }
+
+    .status-scanning {
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeeba;
+    }
+
+    .status-complete {
+      background: #d1edff;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+
+    .status-success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .status-error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .scanner-info {
+      background: #e3f2fd;
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-left: 4px solid #2196f3;
+    }
+
+    .scanner-info h3 {
+      color: #1976d2;
+      margin-bottom: 8px;
+      font-size: 1.1em;
+    }
+
+    .scanner-info p {
+      color: #666;
+      font-size: 0.9em;
+      margin: 0;
+    }
+
+    .qr-icon {
+      font-size: 2em;
+      margin-bottom: 15px;
+      opacity: 0.3;
+    }
+
+    .loading-animation {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid #f3f3f3;
+      border-top: 2px solid #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-left: 10px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .fade-in {
+      animation: fadeIn 0.6s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .scanner-container {
+        margin: 10px;
+        border-radius: 15px;
+      }
+
+      .header {
+        padding: 20px;
+      }
+
+      .header h1 {
+        font-size: 1.8em;
+      }
+
+      .scanner-section {
+        padding: 20px;
+      }
+
+      #reader {
+        width: 280px !important;
+      }
+
+      .scanner-wrapper {
+        padding: 15px;
+      }
+    }
+
+    /* Override html5-qrcode styles */
+    #reader__dashboard_section {
+      display: none !important;
+    }
+
+    #reader__camera_selection {
+      margin-bottom: 15px;
+    }
+
+    #reader select {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 2px solid #ddd;
+      font-size: 14px;
+      background: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="scanner-container fade-in">
+    <div class="header">
+      <h1>🔍 QR Scanner - Course <span class="course-highlight">{{ course_id }}</span></h1>
+    </div>
+
+    <div class="scanner-section">
+      <div class="scanner-info">
+        <h3>📋 Instructions</h3>
+        <p>Position QR codes within the scanning area. The scanner will automatically detect and save unique codes (4 required).</p>
+      </div>
+
+      <div class="scanner-wrapper" id="scanner-wrapper">
+        <div id="reader"></div>
+      </div>
+
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+      <div class="progress-text" id="progress-text">Ready to scan - 0/4 codes detected</div>
+
+      <div id="result"></div>
+    </div>
+  </div>
+
+  <script>
+    let scannedQRCodes = [];
+    let html5QrcodeScanner;
+    const courseId = {{ course_id }};
+
+    function updateProgress() {
+      const progressFill = document.getElementById('progress-fill');
+      const progressText = document.getElementById('progress-text');
+      const scannerWrapper = document.getElementById('scanner-wrapper');
+
+      const percentage = (scannedQRCodes.length / 4) * 100;
+      progressFill.style.width = percentage + '%';
+
+      if (scannedQRCodes.length === 0) {
+        progressText.innerHTML = 'Ready to scan - 0/4 codes detected';
+        scannerWrapper.classList.remove('scanning');
+      } else if (scannedQRCodes.length < 4) {
+        progressText.innerHTML = `Scanning in progress - ${scannedQRCodes.length}/4 codes detected`;
+        scannerWrapper.classList.add('scanning');
+      } else {
+        progressText.innerHTML = 'Scanning complete! ✅';
+        scannerWrapper.classList.remove('scanning');
+      }
+    }
+
+    function updateScannedList() {
+      const resultDiv = document.getElementById('result');
+      if (scannedQRCodes.length === 0) {
+        resultDiv.innerHTML = `
+          <div style="text-align: center;">
+            <div class="qr-icon">📱</div>
+            <p><strong>Course ID:</strong> ${courseId}</p>
+            <p style="color: #666; font-size: 0.9em; margin-top: 10px;">No QR codes scanned yet. Point your camera at a QR code to begin.</p>
+          </div>
+        `;
+      } else {
+        const statusBadge = scannedQRCodes.length < 4
+          ? '<span class="status-badge status-scanning">🔄 Scanning...</span>'
+          : '<span class="status-badge status-complete">✅ Complete</span>';
+
+        resultDiv.innerHTML = `
+          <div style="text-align: center;">
+            <strong>📋 Course ID:</strong> ${courseId} ${statusBadge}
+            <div class="qr-list">
+              <strong>🎯 Scanned QR Codes: ${scannedQRCodes.length}/4</strong>
+              <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 15px; max-width: 200px; margin-left: auto; margin-right: auto;">
+                ${Array.from({length: 4}, (_, index) =>
+                  `<div style="width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.2em; ${
+                    index < scannedQRCodes.length
+                      ? 'background: #d4edda; color: #155724; border: 2px solid #28a745;'
+                      : 'background: #f8f9fa; color: #6c757d; border: 2px dashed #dee2e6;'
+                  }">
+                    ${index < scannedQRCodes.length ? '✅' : '⭕'}
+                  </div>`
+                ).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      updateProgress();
+    }
+
+    function onScanSuccess(decodedText, decodedResult) {
+      if (!scannedQRCodes.includes(decodedText)) {
+        scannedQRCodes.push(decodedText);
+        updateScannedList();
+
+        if (scannedQRCodes.length === 4) {
+          html5QrcodeScanner.clear();
+          document.getElementById('result').innerHTML += `
+            <div style="margin-top: 20px; text-align: center;">
+              <span class="status-badge status-complete">🎉 Scanning complete! Saving data...</span>
+              <div class="loading-animation"></div>
+            </div>
+          `;
+
+          // Send all 4 codes and course ID to backend
+          fetch('/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              course_id: courseId,
+              qr_codes: scannedQRCodes,
+              data: scannedQRCodes.join('\n')
+            })
+          })
+          .then(response => response.json())
+          .then(data => {
+            const resultDiv = document.getElementById('result');
+            if (data.success) {
+              resultDiv.innerHTML += `
+                <div style="margin-top: 15px; text-align: center;">
+                  <span class="status-badge status-success">✅ Successfully saved to database!</span>
+                </div>
+              `;
+            } else {
+              resultDiv.innerHTML += `
+                <div style="margin-top: 15px; text-align: center;">
+                  <span class="status-badge status-error">❌ Error saving data: ${data.error}</span>
+                </div>
+              `;
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('result').innerHTML += `
+              <div style="margin-top: 15px; text-align: center;">
+                <span class="status-badge status-error">❌ Network error occurred!</span>
+              </div>
+            `;
+          });
+        }
+      }
+    }
+
+    function onScanFailure(error) {
+      // Handle scan failure, usually better to ignore
+    }
+
+    window.onload = function() {
+      html5QrcodeScanner = new Html5QrcodeScanner(
+        "reader", {
+          fps: 10,
+          qrbox: 250,
+          aspectRatio: 1.0
+        });
+      html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+      updateScannedList();
+    }
+  </script>
+</body>
+</html>

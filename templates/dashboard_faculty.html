@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClassIQ - Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        .header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px 30px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            color: white;
+        }
+
+        .role-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Navigation Tabs */
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            overflow-x: auto;
+        }
+
+        .tab-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            font-weight: 500;
+        }
+
+        .tab-btn:hover, .tab-btn.active {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Content Sections */
+        .content-section {
+            display: none;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Cards */
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .card h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        /* QR Display */
+        .qr-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .qr-code {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .qr-placeholder {
+            width: 150px;
+            height: 150px;
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            margin: 0 auto 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            font-size: 48px;
+            color: #adb5bd;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            transform: perspective(1000px) rotateX(0deg);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:nth-child(2) {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+        }
+
+        .stat-card:nth-child(3) {
+            background: linear-gradient(45deg, #45b7d1, #96c93d);
+        }
+
+        .stat-card:nth-child(4) {
+            background: linear-gradient(45deg, #f093fb, #f5576c);
+        }
+
+        .stat-card:hover {
+            transform: perspective(1000px) rotateX(5deg) translateY(-5px);
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        /* Tables */
+        .table-container {
+            overflow-x: auto;
+            border-radius: 10px;
+            background: white;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid #e1e5e9;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #555;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        /* Session Control */
+        .session-control {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .session-active {
+            background: linear-gradient(45deg, #28a745, #20c997);
+        }
+
+        .session-timer {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .qr-container {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            max-width: 90vw;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .projector-mode {
+            background: #000;
+            color: white;
+            text-align: center;
+            padding: 50px;
+        }
+
+        .projector-qr {
+            width: 300px;
+            height: 300px;
+            background: white;
+            margin: 20px auto;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            color: #333;
+        }
+
+        .chart-container {
+            height: 300px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6c757d;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">
+                <span style="margin-right: 10px;">🎓</span> ClassIQ
+            </div>
+            <div class="user-info">
+                <span class="role-badge" id="user-role">Teacher</span>
+                <span id="user-name">Dr. Sarah Johnson</span>
+                <button class="btn btn-secondary" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="nav-tabs">
+            <button class="tab-btn active" onclick="showTab('dashboard')">📊 Dashboard</button>
+            <button class="tab-btn" onclick="showTab('qr-generation')">📱 QR Generation</button>
+            <button class="tab-btn" onclick="showTab('session-control')">⏱️ Session Control</button>
+            <button class="tab-btn" onclick="showTab('attendance')">✅ Attendance</button>
+            <button class="tab-btn" onclick="showTab('reports')">📈 Reports</button>
+            <button class="tab-btn" onclick="showTab('settings')">⚙️ Settings</button>
+        </div>
+
+        <!-- Dashboard Section -->
+        <div class="content-section active" id="dashboard">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value">24</div>
+                    <div class="stat-label">Active Sessions Today</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">89%</div>
+                    <div class="stat-label">Average Attendance</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">156</div>
+                    <div class="stat-label">Students Present</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">12</div>
+                    <div class="stat-label">Courses Active</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>📊 Recent Activities</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Course</th>
+                                <th>Students Present</th>
+                                <th>Attendance %</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>10:30 AM</td>
+                                <td>Computer Networks - CSE 3rd Year</td>
+                                <td>45/50</td>
+                                <td>90%</td>
+                                <td><span style="color: #28a745;">✅ Completed</span></td>
+                            </tr>
+                            <tr>
+                                <td>09:00 AM</td>
+                                <td>Database Systems - CSE 2nd Year</td>
+                                <td>38/42</td>
+                                <td>88%</td>
+                                <td><span style="color: #28a745;">✅ Completed</span></td>
+                            </tr>
+                            <tr>
+                                <td>11:30 AM</td>
+                                <td>Software Engineering - CSE 4th Year</td>
+                                <td>32/35</td>
+                                <td>91%</td>
+                                <td><span style="color: #ffc107;">🔄 In Progress</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>📈 Attendance Trends</h3>
+                <div class="chart-container">
+                    <span>📊 Attendance trend chart would be displayed here</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- QR Generation Section -->
+        <div class="content-section" id="qr-generation">
+            <div class="card">
+                <h3>📱 Generate QR Codes for Session</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="year">Academic Year</label>
+                        <select id="year">
+                            <option value="2024-25">2024-25</option>
+                            <option value="2023-24">2023-24</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="branch">Branch</label>
+                        <select id="branch">
+                            <option value="cse">Computer Science Engineering</option>
+                            <option value="ece">Electronics & Communication</option>
+                            <option value="me">Mechanical Engineering</option>
+                            <option value="civil">Civil Engineering</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="course">Course</label>
+                        <select id="course">
+                            <option value="3rd-year">3rd Year</option>
+                            <option value="2nd-year">2nd Year</option>
+                            <option value="4th-year">4th Year</option>
+                            <option value="1st-year">1st Year</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="subject">Subject</label>
+                        <input type="text" id="subject" placeholder="e.g., Computer Networks">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="date">Date</label>
+                        <input type="date" id="date">
+                    </div>
+                    <div class="form-group">
+                        <label for="slot">Lecture Slot</label>
+                        <select id="slot">
+                            <option value="9-10">9:00 AM - 10:00 AM</option>
+                            <option value="10-11">10:00 AM - 11:00 AM</option>
+                            <option value="11-12">11:00 AM - 12:00 PM</option>
+                            <option value="2-3">2:00 PM - 3:00 PM</option>
+                            <option value="3-4">3:00 PM - 4:00 PM</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="generateQRs()">Generate 4 QR Codes</button>
+                <button class="btn btn-secondary" onclick="showProjectorMode()">🖥️ Projector Mode</button>
+            </div>
+
+            <div class="card" id="qr-display" style="display: none;">
+                <h3>📱 Generated QR Codes</h3>
+                <div class="qr-container">
+                    <div class="qr-code">
+                        <div class="qr-placeholder">1️⃣</div>
+                        <p><strong>QR Code 1</strong></p>
+                        <small>Session ID: ABC123-1</small>
+                    </div>
+                    <div class="qr-code">
+                        <div class="qr-placeholder">2️⃣</div>
+                        <p><strong>QR Code 2</strong></p>
+                        <small>Session ID: ABC123-2</small>
+                    </div>
+                    <div class="qr-code">
+                        <div class="qr-placeholder">3️⃣</div>
+                        <p><strong>QR Code 3</strong></p>
+                        <small>Session ID: ABC123-3</small>
+                    </div>
+                    <div class="qr-code">
+                        <div class="qr-placeholder">4️⃣</div>
+                        <p><strong>QR Code 4</strong></p>
+                        <small>Session ID: ABC123-4</small>
+                    </div>
+                </div>
+                <p style="text-align: center; color: #666; margin-top: 20px;">
+                    ⏰ QR codes are valid for 15 minutes from generation time
+                </p>
+            </div>
+        </div>
+
+        <!-- Session Control Section -->
+        <div class="content-section" id="session-control">
+            <div class="session-control" id="session-status">
+                <h3>⏱️ Session Status</h3>
+                <div class="session-timer" id="session-timer">Session Not Started</div>
+                <p id="session-info">Click "Start Session" to activate QR scanning for students</p>
+                <div style="margin-top: 20px;">
+                    <button class="btn btn-success" onclick="startSession()" id="start-btn">Start Session</button>
+                    <button class="btn btn-danger" onclick="endSession()" id="end-btn" style="display: none;">End Session</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>📊 Real-time Attendance Monitoring</h3>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="scanned-count">0</div>
+                        <div class="stat-label">Students Scanned All 4 QRs</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="partial-count">0</div>
+                        <div class="stat-label">Partial Scans (< 4 QRs)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="total-expected">50</div>
+                        <div class="stat-label">Expected Students</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="attendance-percent">0%</div>
+                        <div class="stat-label">Current Attendance</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>🔍 Live Scan Activity</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Roll Number</th>
+                                <th>Student Name</th>
+                                <th>QR 1</th>
+                                <th>QR 2</th>
+                                <th>QR 3</th>
+                                <th>QR 4</th>
+                                <th>Status</th>
+                                <th>Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="live-scans">
+                            <tr>
+                                <td colspan="8" style="text-align: center; color: #666;">No scans yet. Start session to see live activity.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Attendance Section -->
+        <div class="content-section" id="attendance">
+            <div class="card">
+                <h3>✅ Attendance Verification & Management</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="filter-date">Filter by Date</label>
+                        <input type="date" id="filter-date">
+                    </div>
+                    <div class="form-group">
+                        <label for="filter-subject">Filter by Subject</label>
+                        <select id="filter-subject">
+                            <option value="all">All Subjects</option>
+                            <option value="computer-networks">Computer Networks</option>
+                            <option value="database-systems">Database Systems</option>
+                            <option value="software-engineering">Software Engineering</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="filter-branch">Filter by Branch</label>
+                        <select id="filter-branch">
+                            <option value="all">All Branches</option>
+                            <option value="cse">CSE</option>
+                            <option value="ece">ECE</option>
+                            <option value="me">ME</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="filterAttendance()">Apply Filters</button>
+                <button class="btn btn-success" onclick="exportAttendance()">📤 Export to Excel</button>
+            </div>
+
+            <div class="card">
+                <h3>📋 Attendance Records</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Subject</th>
+                                <th>Roll No.</th>
+                                <th>Student Name</th>
+                                <th>QRs Scanned</th>
+                                <th>Attendance</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>2024-08-15</td>
+                                <td>Computer Networks</td>
+                                <td>CSE001</td>
+                                <td>John Smith</td>
+                                <td>4/4 ✅</td>
+                                <td><span style="color: #28a745;">Present</span></td>
+                                <td><button class="btn btn-secondary" style="padding: 5px 10px; font-size: 12px;">Edit</button></td>
+                            </tr>
+                            <tr>
+                                <td>2024-08-15</td>
+                                <td>Computer Networks</td>
+                                <td>CSE002</td>
+                                <td>Jane Doe</td>
+                                <td>3/4 ⚠️</td>
+                                <td><span style="color: #ffc107;">Partial</span></td>
+                                <td><button class="btn btn-secondary" style="padding: 5px 10px; font-size: 12px;">Edit</button></td>
+                            </tr>
+                            <tr>
+                                <td>2024-08-15</td>
+                                <td>Computer Networks</td>
+                                <td>CSE003</td>
+                                <td>Mike Johnson</td>
+                                <td>0/4 ❌</td>
+                                <td><span style="color: #dc3545;">Absent</span></td>
+                                <td><button class="btn btn-secondary" style="padding: 5px 10px; font-size: 12px;">Edit</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>⚠️ Low Attendance Alerts</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Roll No.</th>
+                                <th>Student Name</th>
+                                <th>Subject</th>
+                                <th>Attendance %</th>
+                                <th>Classes Attended</th>
+                                <th>Total Classes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>CSE015</td>
+                                <td>Alex Brown</td>
+                                <td>Computer Networks</td>
+                                <td style="color: #dc3545;"><strong>65%</strong></td>
+                                <td>13</td>
+                                <td>20</td>
+                            </tr>
+                            <tr>
+                                <td>CSE027</td>
+                                <td>Sarah Wilson</td>
+                                <td>Database Systems</td>
+                                <td style="color: #dc3545;"><strong>70%</strong></td>
+                                <td>14</td>
+                                <td>20</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reports Section -->
+        <div class="content-section" id="reports">
+            <div class="card">
+                <h3>📈 Analytics & Reports</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="report-type">Report Type</label>
+                        <select id="report-type">
+                            <option value="attendance-summary">Attendance Summary</option>
+                            <option value="subject-wise">Subject-wise Analysis</option>
+                            <option value="student-performance">Student Performance</option>
+                            <option value="monthly-trends">Monthly Trends</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="date-range-start">From Date</label>
+                        <input type="date" id="date-range-start">
+                    </div>
+                    <div class="form-group">
+                        <label for="date-range-end">To Date</label>
+                        <input type="date" id="date-range-end">
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="generateReport()">Generate Report</button>
+                <button class="btn btn-secondary" onclick="exportReport()">📥 Download PDF</button>
+            </div>
+
+            <div class="card">
+                <h3>📊 Attendance Trends Over Time</h3>
+                <div class="chart-container">
+                    <span>📈 Interactive attendance trends chart would be displayed here</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>🏆 Top Performing Classes</h3>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value">95%</div>
+                        <div class="stat-label">Software Engineering<br>CSE 4th Year</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">92%</div>
+                        <div class="stat-label">Database Systems<br>CSE 3rd Year</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">88%</div>
+                        <div class="stat-label">Computer Networks<br>CSE 3rd Year</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">85%</div>
+                        <div class="stat-label">Data Structures<br>CSE 2nd Year</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Section -->
+        <div class="content-section" id="settings">
+            <div class="card">
+                <h3>⚙️ System Settings</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="qr-validity">QR Code Validity (minutes)</label>
+                        <input type="number" id="qr-validity" value="15" min="1" max="60">
+                    </div>
+                    <div class="form-group">
+                        <label for="attendance-threshold">Low Attendance Threshold (%

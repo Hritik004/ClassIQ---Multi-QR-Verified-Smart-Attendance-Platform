@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClassIQ - Student Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(135deg, #4a4e69 0%, #6b5b95 20%, #4e29c6 40%, #4e29c6 60%, #6b5b95 80%, #4a4e69 100%);
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.08) 0%, transparent 50%);
+            z-index: -1;
+        }
+
+        /* Animated Background Elements */
+        .floating-element {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .floating-element:nth-child(1) {
+            width: 80px;
+            height: 80px;
+            top: 20%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+
+        .floating-element:nth-child(2) {
+            width: 120px;
+            height: 120px;
+            top: 70%;
+            left: 80%;
+            animation-delay: 2s;
+        }
+
+        .floating-element:nth-child(3) {
+            width: 60px;
+            height: 60px;
+            top: 40%;
+            left: 70%;
+            animation-delay: 4s;
+        }
+
+        .floating-element:nth-child(4) {
+            width: 100px;
+            height: 100px;
+            top: 80%;
+            left: 20%;
+            animation-delay: 1s;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0px) rotate(0deg);
+            }
+            50% {
+                transform: translateY(-20px) rotate(180deg);
+            }
+        }
+
+        .login-container-full {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 24px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            width: 100%;
+            max-width: 420px;
+            z-index: 10;
+        }
+
+        .login-header {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.1) 100%);
+            color: white;
+            padding: 35px 25px;
+            text-align: center;
+            backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .login-header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            font-weight: 700;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .login-header p {
+            opacity: 0.95;
+            font-size: 15px;
+            text-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .user-icon {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .user-icon svg {
+            width: 35px;
+            height: 35px;
+            fill: white;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+        }
+
+        .login-form {
+            padding: 40px 30px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 14px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 14px 18px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            color: white;
+        }
+
+        .form-control::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.6);
+            background: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .form-login-btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.2) 100%);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: white;
+            font-size: 17px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 25px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .form-login-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.3) 100%);
+            border-color: rgba(255, 255, 255, 0.6);
+        }
+
+        .form-login-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .form-login-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .forgot-password {
+            text-align: center;
+        }
+
+        .forgot-password a {
+            color: rgba(255, 255, 255, 0.9);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.3s ease;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .forgot-password a:hover {
+            color: white;
+            text-decoration: underline;
+        }
+
+        .signup-link {
+            text-align: center;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .signup-link p {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            margin: 0;
+        }
+
+        .signup-link a {
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+
+        .signup-link a:hover {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: underline;
+        }
+
+        .back-link {
+            text-align: center;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .back-link a {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .back-link a:hover {
+            color: white;
+            text-decoration: underline;
+        }
+
+        /* Animations */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes slideOutRight {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .login-container-full {
+                margin: 15px;
+                border-radius: 20px;
+                max-width: 100%;
+            }
+
+            .login-form {
+                padding: 30px 25px;
+            }
+
+            .login-header {
+                padding: 30px 25px;
+            }
+
+            .login-header h1 {
+                font-size: 28px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Animated Background -->
+    <div class="floating-element"></div>
+    <div class="floating-element"></div>
+    <div class="floating-element"></div>
+    <div class="floating-element"></div>
+
+    <!-- Student Login Container -->
+    <div class="login-container-full">
+        <div class="login-header">
+            <div class="user-icon">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                </svg>
+            </div>
+            <h1>ClassIQ</h1>
+            <p>Student Portal Access</p>
+        </div>
+
+        <div class="login-form">
+            <form id="student-form" onsubmit="handleStudentLogin(event)">
+                <div class="form-group">
+                    <label for="student-roll">Student Roll Number</label>
+                    <input type="text" id="student-roll" name="rollNumber" class="form-control"
+                        placeholder="Enter your roll number" required>
+                </div>
+                <div class="form-group">
+                    <label for="student-password">Password</label>
+                    <input type="password" id="student-password" name="password" class="form-control"
+                        placeholder="Enter your password" required>
+                </div>
+                <button type="submit" class="form-login-btn">Sign In as Student</button>
+                <div class="forgot-password">
+                    <a href="#" onclick="showForgotPassword('student')">Forgot your password?</a>
+                </div>
+                <div class="signup-link">
+                    <p>Don't have an account? <a href="/signup_student">Sign up here</a></p>
+                </div>
+                <div class="back-link">
+                    <a href="/login_faculty">Faculty? Login here</a> |
+                    <a href="/dashboard">← Back to Home</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+
+
+        // Login form handler
+        async function handleStudentLogin(event) {
+            event.preventDefault();
+
+            const form = event.target;
+            const formData = new FormData(form);
+
+            const rollNumber = formData.get('rollNumber');
+            const password = formData.get('password');
+
+            // Form validation
+            if (!validateLoginForm(form)) {
+                return;
+            }
+
+            const button = form.querySelector('.form-login-btn');
+            const originalText = button.textContent;
+
+            button.textContent = 'Signing In...';
+            button.disabled = true;
+
+            showNotification('🔐 Authenticating Student...', 'info');
+
+            try {
+                console.log("Sending login request:", { rollNumber, password }); // ✅ debug log
+
+                const response = await fetch("/login_student_", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ rollNumber, password })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    showNotification(`✅ Student Login Successful!\nWelcome, ${rollNumber}`, 'success');
+
+                    setTimeout(() => {
+                        window.location.href = "/student/dashboard"; // ✅ make sure this route exists
+                    }, 1000);
+                } else {
+                    throw new Error(result.message || "Login failed. Please try again.");
+                }
+            } catch (error) {
+                showNotification(`❌ ${error.message}`, "error");
+            } finally {
+                button.textContent = originalText;
+                button.disabled = false;
+            }
+}
+
+    function validateLoginForm(form) {
+            const inputs = form.querySelectorAll('input[required]');
+            let isValid = true;
+
+            inputs.forEach(input => {
+                if (!input.value.trim()) {
+                    input.style.borderColor = '#dc3545';
+                    input.style.animation = 'shake 0.5s ease-in-out';
+                    isValid = false;
+
+                    setTimeout(() => {
+                        input.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                        input.style.animation = 'none';
+                    }, 1000);
+                } else {
+                    input.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                    input.style.animation = 'none';
+                }
+            });
+
+            if (!isValid) {
+                showNotification('⚠ Please fill in all required fields', 'error');
+            }
+
+            return isValid;
+        }
+
+        // Utility functions
+        function showForgotPassword(userType) {
+            showNotification(`🔑 Password Reset for ${userType}\n\nA password reset link will be sent to your registered email address.`, 'info');
+        }
+
+        function goToSignup() {
+            showNotification('📝 Signup Feature\n\nContact your institution administrator to create a new account.', 'info');
+        }
+
+        // Notification system
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            const bgColor = {
+                success: '#28a745',
+                error: '#dc3545',
+                info: '#4facfe',
+                warning: '#ffc107'
+            };
+
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${bgColor[type] || bgColor.info};
+                color: white;
+                padding: 15px 25px;
+                border-radius: 10px;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+                z-index: 10000;
+                animation: slideInRight 0.3s ease-out;
+                max-width: 350px;
+                font-weight: 500;
+                white-space: pre-line;
+            `;
+            notification.textContent = message;
+
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.style.animation = 'slideOutRight 0.3s ease-in forwards';
+                setTimeout(() => notification.remove(), 300);
+            }, 4000);
+        }
+
+        // Auto-focus first input
+        document.addEventListener('DOMContentLoaded', function () {
+            const firstInput = document.querySelector('input');
+            if (firstInput) {
+                firstInput.focus();
+            }
+
+            // Welcome notification
+            setTimeout(() => {
+                showNotification('🎓 Welcome to Student Portal!\nEnter your credentials to continue.', 'info');
+            }, 500);
+        });
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                if (document.activeElement.tagName !== 'BUTTON') {
+                    const form = document.getElementById('student-form');
+                    form.dispatchEvent(new Event('submit'));
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>

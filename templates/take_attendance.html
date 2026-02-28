@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance for {{ table_name }} - {{ today_col }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: #333;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Animated background elements */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+            animation: backgroundMove 20s linear infinite;
+            z-index: -1;
+        }
+
+        @keyframes backgroundMove {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(10px, 10px); }
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 25px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+            padding: 40px;
+            text-align: center;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            max-width: 600px;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(from 0deg, transparent, rgba(102, 126, 234, 0.1), transparent);
+            animation: rotate 10s linear infinite;
+            z-index: -1;
+        }
+
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 30px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 1;
+        }
+
+        .qr-display-area {
+            position: relative;
+            width: 400px;
+            height: 400px;
+            margin: 0 auto 30px;
+            background: linear-gradient(145deg, #ffffff, #f0f0f0);
+            border-radius: 20px;
+            box-shadow:
+                0 20px 40px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border: 3px solid transparent;
+            background-clip: padding-box;
+        }
+
+        .qr-display-area::before {
+            content: '';
+            position: absolute;
+            inset: -3px;
+            background: linear-gradient(45deg, #667eea, #764ba2, #667eea);
+            border-radius: 23px;
+            z-index: -1;
+            animation: borderGlow 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes borderGlow {
+            0% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        img {
+            display: none;
+            width: 350px;
+            height: auto;
+            border-radius: 15px;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+        }
+
+        img.show {
+            display: block;
+            animation: qrAppear 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes qrAppear {
+            0% {
+                opacity: 0;
+                transform: scale(0.8) rotateY(90deg);
+            }
+            50% {
+                opacity: 0.5;
+                transform: scale(0.9) rotateY(45deg);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) rotateY(0deg);
+            }
+        }
+
+        .loading-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #667eea;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(102, 126, 234, 0.2);
+            border-left: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 1.2rem;
+            font-weight: 500;
+            margin-bottom: 10px;
+        }
+
+        .loading-subtext {
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+
+        .progress-bar {
+            width: 250px;
+            height: 4px;
+            background: rgba(102, 126, 234, 0.2);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 2px;
+            transform: translateX(-100%);
+            animation: progressFill 3s ease-in-out infinite;
+        }
+
+        @keyframes progressFill {
+            0% { transform: translateX(-100%); }
+            50% { transform: translateX(0%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(102, 126, 234, 0.1);
+            padding: 15px 25px;
+            border-radius: 50px;
+            margin-top: 20px;
+            font-weight: 500;
+            color: #667eea;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            background: #667eea;
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+        }
+
+        .info-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 30px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .info-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .info-text {
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: #666;
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                padding: 30px 20px;
+                border-radius: 20px;
+            }
+
+            h1 {
+                font-size: 2rem;
+                margin-bottom: 25px;
+            }
+
+            .qr-display-area {
+                width: 320px;
+                height: 320px;
+            }
+
+            img {
+                width: 280px;
+            }
+
+            .progress-bar {
+                width: 200px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.7rem;
+            }
+
+            .qr-display-area {
+                width: 280px;
+                height: 280px;
+            }
+
+            img {
+                width: 240px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Attendance for {{ table_name }} - {{ today_col }}</h1>
+
+        <div class="qr-display-area">
+            <div class="loading-placeholder" id="loadingPlaceholder">
+                <div class="spinner"></div>
+                <div class="loading-text">Preparing QR Codes</div>
+                <div class="loading-subtext">Please wait while we load your attendance system</div>
+                <div class="progress-bar">
+                    <div class="progress-fill"></div>
+                </div>
+            </div>
+
+            {% for file in filenames %}
+                <img src="{{ url_for('static', filename='images/' + file) }}" alt="QR Code">
+            {% endfor %}
+        </div>
+
+        <div class="status-indicator" id="statusIndicator" style="display: none;">
+            <div class="status-dot"></div>
+            <span id="statusText">Displaying QR Code</span>
+        </div>
+
+        <div class="info-panel">
+            <div class="info-title">📱 How to Take Attendance</div>
+            <div class="info-text">
+                Scan the QR codes as they appear to mark your attendance. Each code will be displayed for 2-3 seconds in random order.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let images = Array.from(document.querySelectorAll("img"));
+
+        // Shuffle array (Fisher–Yates)
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                let j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        // Preload images into browser cache
+        function preloadImages(imgElements, callback) {
+            let loadedCount = 0;
+            const totalCount = imgElements.length;
+
+            if (totalCount === 0) {
+                callback();
+                return;
+            }
+
+            imgElements.forEach(img => {
+                const temp = new Image();
+                temp.src = img.src;
+                temp.onload = temp.onerror = () => {
+                    loadedCount++;
+                    if (loadedCount === totalCount) {
+                        callback();
+                    }
+                };
+            });
+        }
+
+        let index = 0;
+        let currentImage = null;
+        let hasCompletedOneCycle = false;
+
+        function showNextImage() {
+            if (index < images.length && !hasCompletedOneCycle) {
+                // Hide current image with exit animation (only if not first image)
+                if (currentImage && index > 0) {
+                    currentImage.style.animation = 'qrAppear 0.3s cubic-bezier(0.4, 0, 0.2, 1) reverse';
+                    setTimeout(() => {
+                        currentImage.style.display = "none";
+                        currentImage.classList.remove('show');
+                        showCurrentQR();
+                    }, 300);
+                } else {
+                    // Show first image immediately
+                    showCurrentQR();
+                }
+            }
+        }
+
+        // function showCurrentQR() {
+        //     if (index < images.length && !hasCompletedOneCycle) {
+        //         // Show current image with enter animation
+        //         currentImage = images[index];
+        //         currentImage.style.display = "block";
+        //         currentImage.classList.add('show');
+
+        //         // Update status
+        //         document.getElementById('statusText').textContent =
+        //             `QR Code ${index + 1} of ${images.length}`;
+
+        //         // Random time between 2000–3000 ms
+        //         let randomTime = Math.floor(Math.random() * 1000) + 2000;
+        //         index++;
+
+        //         if (index < images.length) {
+        //             setTimeout(showNextImage, randomTime);
+        //         } else {
+        //             // Mark cycle as complete and show final message
+        //             hasCompletedOneCycle = true;
+        //             setTimeout(() => {
+        //                 document.getElementById('statusText').textContent =
+        //                     'Attendance session completed';
+        //                 document.querySelector('.status-dot').style.background = '#28a745';
+        //             }, randomTime);
+        //         }
+        //     }
+        // }
+
+
+function showCurrentQR() {
+    if (index < images.length && !hasCompletedOneCycle) {
+        // Show current image with enter animation
+        currentImage = images[index];
+        currentImage.style.display = "block";
+        currentImage.classList.add('show');
+
+        // Update status
+        document.getElementById('statusText').textContent =
+            `QR Code ${index + 1} of ${images.length}`;
+
+        // Random time between 2000–3000 ms
+        let randomTime = Math.floor(Math.random() * 1000) + 2000;
+        index++;
+
+        if (index < images.length) {
+            setTimeout(showNextImage, randomTime);
+        } else {
+            // Mark cycle as complete and show final message
+            hasCompletedOneCycle = true;
+            setTimeout(() => {
+                document.getElementById('statusText').textContent =
+                    'Attendance session completed';
+                document.querySelector('.status-dot').style.background = '#28a745';
+
+                // Start 4-second countdown timer
+                let countdown = 50;
+                const countdownInterval = setInterval(() => {
+                    countdown--;
+                    document.getElementById('statusText').textContent =
+                        `Cleaning up in ${countdown} seconds...`;
+
+                    if (countdown <= 0) {
+                        clearInterval(countdownInterval);
+                        document.getElementById('statusText').textContent =
+                            'Cleaning up...';
+
+                        // Fetch the delete route
+                        fetch('/delete', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                course_id: '{{ course_id }}' // Pass the course_id
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            console.log('Delete response:', data);
+                            document.getElementById('statusText').textContent =
+                                'Session ended';
+                        })
+                        .catch(error => {
+                            console.error('Error calling delete route:', error);
+                            document.getElementById('statusText').textContent =
+                                'Session ended';
+                        });
+                    }
+                }, 1000);
+            }, randomTime);
+        }
+    }
+}
+
+
+        // Start only after all images are preloaded
+        preloadImages(images, () => {
+            // Hide loading placeholder
+            document.getElementById('loadingPlaceholder').style.display = 'none';
+
+            // Show status indicator
+            document.getElementById('statusIndicator').style.display = 'inline-flex';
+
+            // Start the QR code display
+            shuffle(images);
+            showNextImage();
+        });
+
+        // Add some interactive feedback
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add click handler for container (optional feedback)
+            document.querySelector('.container').addEventListener('click', function(e) {
+                if (e.target.tagName !== 'IMG') return;
+
+                // Add click animation
+                e.target.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    e.target.style.transform = 'scale(1)';
+                }, 150);
+            });
+        });
+    </script>
+</body>
+</html>
+
+
+<!--<!DOCTYPE html>-->
+<!--<html>-->
+<!--<head>-->
+<!--<style>-->
+<!--  img {-->
+<!--    display: none;-->
+<!--    width: 200px;-->
+<!--    height: auto;-->
+<!--  }-->
+<!--</style>-->
+<!--</head>-->
+<!--<body>-->
+
+<!--<h1>Attendance for {{ table_name }} - {{ today_col }}</h1>-->
+<!--  {% for file in filenames %}-->
+<!--    <img src="{{ url_for('static', filename='images/' + file) }}" alt="QR Code">-->
+<!--  {% endfor %}-->
+
+<!--<script>-->
+<!--let images = Array.from(document.querySelectorAll("img"));-->
+
+// Shuffle array (Fisher–Yates)
+<!--function shuffle(array) {-->
+<!--    for (let i = array.length - 1; i > 0; i--) {-->
+<!--        let j = Math.floor(Math.random() * (i + 1));-->
+<!--        [array[i], array[j]] = [array[j], array[i]];-->
+<!--    }-->
+<!--}-->
+
+// Preload images into browser cache
+<!--function preloadImages(imgElements, callback) {-->
+<!--    let loadedCount = 0;-->
+<!--    imgElements.forEach(img => {-->
+<!--        const temp = new Image();-->
+<!--        temp.src = img.src;-->
+<!--        temp.onload = temp.onerror = () => {-->
+<!--            loadedCount++;-->
+<!--            if (loadedCount === imgElements.length) {-->
+<!--                callback();-->
+<!--            }-->
+<!--        };-->
+<!--    });-->
+<!--}-->
+
+<!--let index = 0;-->
+
+<!--function showNextImage() {-->
+    // Hide all images
+<!--    images.forEach(img => img.style.display = "none");-->
+
+<!--    if (index < images.length) {-->
+        // Show current image
+<!--        images[index].style.display = "block";-->
+
+        // Random time between 2000–3000 ms
+<!--        let randomTime = Math.floor(Math.random() * 1000) + 2000;-->
+
+<!--        index++;-->
+<!--        setTimeout(showNextImage, randomTime);-->
+<!--    }-->
+<!--}-->
+
+// Start only after all images are preloaded
+<!--preloadImages(images, () => {-->
+<!--    shuffle(images);-->
+<!--    showNextImage();-->
+<!--});-->
+<!--</script>-->
+
+<!--</body>-->
+<!--</html>-->

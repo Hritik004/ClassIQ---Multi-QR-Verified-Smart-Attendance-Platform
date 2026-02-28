@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>QR Scan Details</title>
+</head>
+<body>
+    <h2>📘 Course ID: {{ course_id }}</h2>
+
+    <h3>✅ Scanned QR Codes</h3>
+    <ul>
+        {% for code in qr_codes %}
+            <li>{{ code }}</li>
+        {% endfor %}
+    </ul>
+
+    <br>
+    <a href="/student/dashboard">⬅ Back to Dashboard</a>
+</body>
+</html>

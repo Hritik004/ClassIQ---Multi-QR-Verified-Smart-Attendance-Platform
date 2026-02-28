@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Sign Up - AttendEase Academic Portal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #4a4e69 0%, #6b5b95 20%, #471cd6 40%, #471cd6  60%,  #6b5b95 80%,#4a4e69 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                radial-gradient(circle at 20% 30%, rgba(255,255,255,0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(255,255,255,0.08) 0%, transparent 50%),
+                radial-gradient(circle at 50% 10%, rgba(255,255,255,0.12) 0%, transparent 60%);
+            z-index: -1;
+        }
+
+        .signup-container {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 24px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            width: 100%;
+            max-width: 480px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.1) 100%);
+            color: white;
+            padding: 35px 25px;
+            text-align: center;
+            backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            font-weight: 700;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            opacity: 0.95;
+            font-size: 15px;
+            text-shadow: 0 1px 5px rgba(0,0,0,0.1);
+        }
+
+        .signup-form {
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.05);
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .signup-form::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .signup-form::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        .signup-form::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 14px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .form-control, select {
+            width: 100%;
+            padding: 14px 18px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            color: white;
+        }
+
+        .form-control::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .form-control:focus, select:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.6);
+            background: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.1);
+            transform: translateY(-1px);
+        }
+
+        select {
+            cursor: pointer;
+        }
+
+        select option {
+            background: rgba(74, 78, 105, 0.95);
+            color: white;
+            padding: 10px;
+        }
+
+        .signup-btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.2) 100%);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: white;
+            font-size: 17px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+
+        .signup-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.3);
+            background: linear-gradient(135deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.3) 100%);
+            border-color: rgba(255, 255, 255, 0.6);
+        }
+
+        .signup-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .signup-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .login-link {
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .login-link p {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            margin: 0;
+        }
+
+        .login-link a {
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+
+        .login-link a:hover {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: underline;
+        }
+
+        .user-icon {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        }
+
+        .user-icon svg {
+            width: 35px;
+            height: 35px;
+            fill: white;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+        }
+
+        .otp-info {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.9);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .otp-info .icon {
+            display: inline-block;
+            margin-right: 8px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .verification-step {
+            display: none;
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        .verification-step.active {
+            display: block;
+        }
+
+        .verification-step h3 {
+            color: white;
+            font-size: 24px;
+            margin-bottom: 15px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .verification-step p {
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 10px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .otp-input {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin: 25px 0;
+        }
+
+        .otp-digit {
+            width: 50px;
+            height: 50px;
+            text-align: center;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .otp-digit:focus {
+            border-color: rgba(255, 255, 255, 0.6);
+            background: rgba(255, 255, 255, 0.2);
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.1);
+            transform: scale(1.05);
+        }
+
+        .resend-otp {
+            color: rgba(255, 255, 255, 0.9);
+            text-decoration: none;
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .resend-otp:hover {
+            text-decoration: underline;
+            color: white;
+        }
+
+        .form-step {
+            display: none;
+        }
+
+        .form-step.active {
+            display: block;
+        }
+
+        .switch-signup {
+            text-align: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .switch-signup p {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            margin: 0;
+        }
+
+        .switch-signup a {
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+
+        .switch-signup a:hover {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: underline;
+        }
+
+        @media (max-width: 480px) {
+            .signup-container {
+                margin: 15px;
+                border-radius: 20px;
+                max-width: 100%;
+            }
+
+            .signup-form {
+                padding: 25px 20px;
+                max-height: 55vh;
+            }
+
+            .header {
+                padding: 30px 20px;
+            }
+
+            .header h1 {
+                font-size: 28px;
+            }
+
+            .otp-digit {
+                width: 40px;
+                height: 40px;
+                font-size: 16px;
+            }
+
+            .otp-input {
+                gap: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="signup-container">
+        <div class="header">
+            <div class="user-icon">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                </svg>
+            </div>
+            <h1>Join AttendEase</h1>
+            <p>Create your student account to get started</p>
+        </div>
+
+        <div class="signup-form">
+            <div class="switch-signup">
+                <p>Are you a faculty member? <a href="/signup_faculty">Sign up as Faculty</a></p>
+            </div>
+
+            <div id="student-form-step" class="form-step active">
+                <div class="otp-info">
+                    <span class="icon">📧</span>
+                    An OTP will be sent to your college email for verification after registration.
+                </div>
+                <form id="student-form" onsubmit="handleStudentSignup(event)">
+                    <div class="form-group">
+                        <label for="student-name">Full Name</label>
+                        <input type="text" id="student-name" name="studentName" class="form-control" placeholder="Enter your full name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="student-roll">Roll Number</label>
+                        <input type="text" id="student-roll" name="rollNumber" class="form-control" placeholder="Enter your college roll number" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="student-department">Department</label>
+                        <select id="student-department" name="department" class="form-control" required>
+                            <option value="mechanical">Mechanical Engineering</option>
+                            <option value="civil">Civil Engineering</option>
+                            <option value="electrical">Electrical Engineering</option>
+                            <option value="mathematics">Mathematics</option>
+                            <option value="physics">Physics</option>
+                            <option value="chemistry">Chemistry</option>
+                            <option value="biology">Biology</option>
+                            <option value="english">English</option>
+                            <option value="commerce">Commerce</option>
+                            <option value="economics">Economics</option>
+                            <option value="other">Other</option>
+                        </select>
+                        <div id="other-department-group" class="form-group" style="display:none; margin-top:10px;">
+                            <label for="other-department">Please specify your department</label>
+                            <input type="text" id="other-department" name="otherDepartment" class="form-control" placeholder="Enter your department">
+                        </div>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="student-email">College Email</label>
+                        <input type="email" id="student-email" name="collegeEmail" class="form-control" placeholder="Enter your college email" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="student-password">Password</label>
+                        <input type="password" id="student-password" name="password" class="form-control" placeholder="Create a strong password" required>
+                    </div>
+                    <button type="submit" class="signup-btn">Create Student Account</button>
+                </form>
+            </div>
+
+            <div id="student-verification-step" class="verification-step">
+                <h3>Email Verification</h3>
+                <p>We've sent a 6-digit OTP to your email address</p>
+                <p><strong id="student-email-display"></strong></p>
+
+                <div class="otp-input">
+                    <input type="text" class="otp-digit" maxlength="1" oninput="moveToNext(this, 0)">
+                    <input type="text" class="otp-digit" maxlength="1" oninput="moveToNext(this, 1)">
+                    <input type="text" class="otp-digit" maxlength="1" oninput="moveToNext(this, 2)">
+                    <input type="text" class="otp-digit" maxlength="1" oninput="moveToNext(this, 3)">
+                    <input type="text" class="otp-digit" maxlength="1" oninput="moveToNext(this, 4)">
+                    <input type="text" class="otp-digit" maxlength="1" oninput="moveToNext(this, 5)">
+                </div>
+
+                <button class="signup-btn" onclick="verifyOTP()">Verify & Complete Registration</button>
+                <p><a href="#" class="resend-otp" onclick="resendOTP()">Resend OTP</a></p>
+            </div>
+
+            <div class="login-link">
+                <p>Already have an account? <a href="#" onclick="goToLogin()">Sign in here</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function validatePassword(password) {
+            if (password.length < 6) {
+                alert('Password must be at least 6 characters long.');
+                return false;
+            }
+            return true;
+        }
+
+        function validateEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                alert('Please enter a valid email address.');
+                return false;
+            }
+            return true;
+        }
+
+        // Show/hide other department input
+        document.getElementById('student-department').addEventListener('change', function() {
+            var otherGroup = document.getElementById('other-department-group');
+            if (this.value === 'other') {
+                otherGroup.style.display = 'block';
+            } else {
+                otherGroup.style.display = 'none';
+            }
+        });
+
+        function handleStudentSignup(event) {
+            event.preventDefault();
+
+            const form = event.target;
+            const formData = new FormData(form);
+
+            const studentName = formData.get('studentName');
+            const rollNumber = formData.get('rollNumber');
+            const department = formData.get('department');
+            const phoneNumber = formData.get('phoneNumber');
+            const password = formData.get('password');
+            const collegeEmail = formData.get('collegeEmail');
+
+            // Validation
+            if (!validateEmail(collegeEmail)) return;
+            if (!validatePassword(password)) return;
+
+            // Simulate signup process
+            const button = form.querySelector('.signup-btn');
+            const originalText = button.textContent;
+
+            button.textContent = 'Creating Account...';
+            button.disabled = true;
+
+            setTimeout(() => {
+                // Show verification step
+                document.getElementById('student-form-step').classList.remove('active');
+                document.getElementById('student-verification-step').classList.add('active');
+                document.getElementById('student-email-display').textContent = collegeEmail;
+
+                // Reset button
+                button.textContent = originalText;
+                button.disabled = false;
+
+                // Focus on first OTP input
+                document.querySelector('.otp-digit').focus();
+            }, 1500);
+        }
+
+        function moveToNext(current, index) {
+            if (current.value.length === 1) {
+                const nextInput = current.parentNode.children[index + 1];
+                if (nextInput) {
+                    nextInput.focus();
+                }
+            }
+        }
+
+        function verifyOTP() {
+            const otpInputs = document.querySelectorAll('.otp-digit');
+            let otp = '';
+
+            otpInputs.forEach(input => {
+                otp += input.value;
+            });
+
+            if (otp.length !== 6) {
+                alert('Please enter the complete 6-digit OTP.');
+                return;
+            }
+
+            // Simulate OTP verification
+            const button = event.target;
+            const originalText = button.textContent;
+
+            button.textContent = 'Verifying...';
+            button.disabled = true;
+
+            setTimeout(() => {
+                alert('🎉 Registration successful!\n\nWelcome to AttendEase!\nUser Type: STUDENT\nYour account has been created and verified.');
+
+                // Reset button
+                button.textContent = originalText;
+                button.disabled = false;
+
+                // In a real application, redirect to login or dashboard
+                if (confirm('Would you like to go to the login page now?')) {
+                    goToLogin();
+                }
+            }, 2000);
+        }
+
+        function resendOTP() {
+            alert('OTP resent to your email address!\n\nPlease check your inbox and enter the new 6-digit code.');
+
+            // Clear OTP inputs
+            const otpInputs = document.querySelectorAll('.otp-digit');
+            otpInputs.forEach(input => input.value = '');
+            otpInputs[0].focus();
+        }
+
+        function goToLogin() {
+            // In a real application, this would navigate to the login page
+            if (confirm('Navigate to login page?')) {
+                alert('This would redirect to the login page in a real application.');
+                // window.location.href = 'login.html';
+            }
+        }
+
+        // Allow backspace to move to previous OTP input
+        document.addEventListener('keydown', function(e) {
+            if (e.target.classList.contains('otp-digit') && e.key === 'Backspace' && e.target.value === '') {
+                const prevInput = e.target.previousElementSibling;
+                if (prevInput && prevInput.classList.contains('otp-digit')) {
+                    prevInput.focus();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

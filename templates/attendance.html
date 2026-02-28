@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ table_name }} - ClassIQ</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:#f6f7fb; margin:0; padding:24px; }
+    .wrap { max-width:900px; margin:0 auto; background:#fff; border-radius:16px; box-shadow:0 20px 40px rgba(0,0,0,.08); overflow:hidden; }
+    .header { background:linear-gradient(135deg,#4facfe 0%,#00f2fe 100%); color:#fff; padding:28px; }
+    h1 { margin:0 0 6px; font-size:24px; }
+    .subtitle { opacity:.9; }
+    .content { padding:24px; }
+    .total { font-size:18px; margin-bottom:16px; font-weight:600; }
+    table { width:100%; border-collapse:collapse; border-radius:12px; overflow:hidden; }
+    th, td { padding:12px 14px; border-bottom:1px solid #eee; text-align:left; }
+    th { background:#fafbff; font-weight:700; }
+    tr:hover td { background:#fafafa; }
+    .footer { display:flex; gap:12px; margin-top:20px; }
+    .btn { display:inline-block; padding:10px 16px; border-radius:999px; text-decoration:none; font-weight:600; background:#667eea; color:#fff; }
+    .btn.alt { background:#4facfe; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <h1>Attendance — {{ table_name }}</h1>
+      <div class="subtitle">Class Management System</div>
+    </div>
+
+    <div class="content">
+      <div class="total">Total Classes: {{ total }}</div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Roll Number</th>
+            <th>Current Attendance</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in attendance %}
+            <tr>
+              <td>{{ row.roll_no }}</td>
+              <td>{{ row.current }}</td>
+            </tr>
+          {% else %}
+            <tr><td colspan="2">No students found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <div class="footer">
+        <a class="btn" href="/take_attendance/{{ classroom_no }}">📋 Take Attendance</a>
+        <a class="btn alt" href="/students/{{ classroom_no }}">↩ Back to Students</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

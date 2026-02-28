@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Courses</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .main-container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="books" width="30" height="30" patternUnits="userSpaceOnUse"><rect width="30" height="30" fill="none"/><rect x="8" y="8" width="6" height="14" fill="white" opacity="0.1"/><rect x="16" y="6" width="6" height="16" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23books)"/></svg>');
+            pointer-events: none;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            font-weight: 300;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .courses-section {
+            margin-bottom: 50px;
+        }
+
+        .section-title {
+            font-size: 1.3em;
+            color: #333;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+            display: grid;
+            gap: 15px;
+        }
+
+        li {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+            border: 2px solid transparent;
+            position: relative;
+        }
+
+        li::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #4facfe, #00f2fe);
+        }
+
+        li:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+            border-color: #4facfe;
+        }
+
+        .course-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 25px;
+            gap: 15px;
+        }
+
+        .course-info {
+            flex: 1;
+        }
+
+        .course-info a {
+            text-decoration: none;
+            color: #333;
+            display: block;
+            transition: color 0.3s ease;
+        }
+
+        .course-info a:hover {
+            color: #4facfe;
+        }
+
+        .course-name {
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-bottom: 5px;
+            line-height: 1.3;
+        }
+
+        .course-id {
+            color: #666;
+            font-size: 0.9em;
+            font-family: 'Courier New', monospace;
+            background: #f8f9fa;
+            padding: 2px 8px;
+            border-radius: 12px;
+            display: inline-block;
+        }
+
+        .copy-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            min-width: 100px;
+            justify-content: center;
+        }
+
+        .copy-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            background: linear-gradient(135deg, #5a67d8, #6b46c1);
+        }
+
+        .copy-btn:active {
+            transform: translateY(0);
+        }
+
+        .no-courses {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .no-courses-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        .no-courses p {
+            font-size: 1.2em;
+            color: #888;
+        }
+
+        .create-course-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            border: 2px dashed #dee2e6;
+            transition: all 0.3s ease;
+        }
+
+        .create-course-section:hover {
+            border-color: #4facfe;
+            background: #f0f8ff;
+        }
+
+        .form-title {
+            font-size: 1.3em;
+            color: #333;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #4facfe;
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+        }
+
+        .submit-btn {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0 auto;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
+            background: linear-gradient(135deg, #218838, #1e7e34);
+        }
+
+        .copy-success {
+            background: linear-gradient(135deg, #28a745, #20c997) !important;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3) !important;
+        }
+
+        .copy-success::after {
+            content: ' ✓';
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+
+            .header {
+                padding: 25px 20px;
+            }
+
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .content {
+                padding: 25px 20px;
+            }
+
+            .course-item {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .copy-btn {
+                width: 100%;
+            }
+
+            .create-course-section {
+                padding: 20px;
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .pulse {
+            animation: pulse 0.6s ease-in-out;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container fade-in">
+        <div class="header">
+            <h1>📚 My Courses</h1>
+        </div>
+
+        <div class="content">
+            <div class="courses-section">
+                <h2 class="section-title">
+                    🎓 Your Courses
+                    {% if courses %}
+                        <span style="background: rgba(79, 172, 254, 0.1); color: #4facfe; padding: 4px 12px; border-radius: 15px; font-size: 0.8em; font-weight: 500;">{{ courses|length }} course{{ 's' if courses|length != 1 else '' }}</span>
+                    {% endif %}
+                </h2>
+
+                {% if courses %}
+                    <ul>
+                        {% for course in courses %}
+                            <li>
+                                <div class="course-item">
+                                    <div class="course-info">
+                                        <a href="/classroom_viewer/{{course.course_id}}">
+                                            <div class="course-name">{{ course.course_name }}</div>
+                                            <div class="course-id">ID: {{course.course_id}}</div>
+                                        </a>
+                                    </div>
+                                    <button class="copy-btn" data-course-id="{{ course.course_id }}">
+                                        📋 Copy Link
+                                    </button>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <div class="no-courses">
+                        <div class="no-courses-icon">📚</div>
+                        <p>No courses found for your account.</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="create-course-section">
+                <h2 class="form-title">➕ Create New Course</h2>
+                <form action="/xpage_sub" method="POST">
+                    <div class="form-group">
+                        <label for="course_id">Course ID:</label>
+                        <input type="text" id="course_id" name="course_id" required placeholder="e.g., CS101">
+                    </div>
+                    <div class="form-group">
+                        <label for="course_name">Course Name:</label>
+                        <input type="text" id="course_name" name="course_name" required placeholder="e.g., Introduction to Computer Science">
+                    </div>
+                    <button type="submit" class="submit-btn">
+                        🚀 Create Course
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // JavaScript to handle copy-to-clipboard functionality
+        document.addEventListener('DOMContentLoaded', function () {
+            const copyButtons = document.querySelectorAll('.copy-btn');
+            copyButtons.forEach(button => {
+                button.addEventListener('click', function () {
+                    const courseId = this.getAttribute('data-course-id'); // Get the course ID
+                    const copyText = `classiq.pythonanywhere.com/join_classroom/${courseId}`; // Format the text
+
+                    navigator.clipboard.writeText(copyText) // Copy to clipboard
+                        .then(() => {
+                            // Visual feedback
+                            const originalText = this.innerHTML;
+                            this.innerHTML = '✅ Copied!';
+                            this.classList.add('copy-success');
+                            this.classList.add('pulse');
+
+                            // Show toast notification
+                            showToast(`Copied: ${copyText}`);
+
+                            // Reset button after 2 seconds
+                            setTimeout(() => {
+                                this.innerHTML = originalText;
+                                this.classList.remove('copy-success');
+                                this.classList.remove('pulse');
+                            }, 2000);
+                        })
+                        .catch(err => {
+                            console.error('Failed to copy text: ', err);
+                            showToast('Failed to copy link', 'error');
+                        });
+                });
+            });
+        });
+
+        // Toast notification function
+        function showToast(message, type = 'success') {
+            // Remove existing toast
+            const existingToast = document.querySelector('.toast');
+            if (existingToast) {
+                existingToast.remove();
+            }
+
+            // Create toast
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'error' ? '#dc3545' : '#28a745'};
+                color: white;
+                padding: 12px 20px;
+                border-radius: 25px;
+                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+                z-index: 1000;
+                animation: slideIn 0.3s ease-out;
+                max-width: 300px;
+                font-size: 14px;
+                font-weight: 500;
+            `;
+            toast.textContent = message;
+
+            // Add animation styles
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes slideIn {
+                    from {
+                        transform: translateX(100%);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translateX(0);
+                        opacity: 1;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+
+            document.body.appendChild(toast);
+
+            // Remove toast after 3 seconds
+            setTimeout(() => {
+                toast.style.animation = 'slideIn 0.3s ease-out reverse';
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.remove();
+                    }
+                    if (style.parentNode) {
+                        style.remove();
+                    }
+                }, 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
+
+
+
+
+
+<!--<!DOCTYPE html>-->
+<!--<html lang="en">-->
+<!--<head>-->
+<!--    <meta charset="UTF-8">-->
+<!--    <meta name="viewport" content="width=device-width, initial-scale=1.0">-->
+<!--    <title>My Courses</title>-->
+<!--    <style>-->
+<!--        body {-->
+<!--            font-family: Arial, sans-serif;-->
+<!--            margin: 20px;-->
+<!--        }-->
+<!--        h1 {-->
+<!--            color: #333;-->
+<!--            text-align: center;-->
+<!--        }-->
+<!--        ul {-->
+<!--            list-style-type: none;-->
+<!--            padding: 0;-->
+            <!--max-width: 600px; /* Limit the width of the list */-->
+            <!--margin: 0 auto; /* Center the list on the page */-->
+<!--        }-->
+<!--        li {-->
+<!--            background: #f4f4f4;-->
+<!--            margin: 10px 0;-->
+<!--            padding: 10px;-->
+<!--            border-radius: 5px;-->
+<!--            display: flex;-->
+<!--            align-items: center;-->
+<!--            justify-content: space-between;-->
+            <!--box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Add a subtle shadow */-->
+<!--        }-->
+<!--        .copy-btn {-->
+<!--            background-color: #007bff;-->
+<!--            color: white;-->
+<!--            border: none;-->
+<!--            padding: 5px 10px;-->
+<!--            border-radius: 5px;-->
+<!--            cursor: pointer;-->
+<!--            font-size: 14px;-->
+<!--            display: flex;-->
+<!--            align-items: center;-->
+<!--            gap: 5px;-->
+<!--        }-->
+<!--        .copy-btn:hover {-->
+<!--            background-color: #0056b3;-->
+<!--        }-->
+<!--    </style>-->
+<!--</head>-->
+<!--<body>-->
+<!--    <h1>My Courses</h1>-->
+<!--    {% if courses %}-->
+<!--        <ul>-->
+<!--            {% for course in courses %}-->
+<!--                <li>-->
+<!--                    <a href="/classroom_viewer/{{course.course_id}}"><span>{{ course.course_name }} ({{course.course_id}})</span></a>-->
+<!--                    <button class="copy-btn" data-course-id="{{ course.course_id }}">-->
+<!--                        &#x2398; Copy-->
+<!--                    </button>-->
+<!--                </li>-->
+<!--            {% endfor %}-->
+<!--        </ul>-->
+<!--    {% else %}-->
+<!--        <p style="text-align: center;">No courses found for your account.</p>-->
+<!--    {% endif %}-->
+<!--    <br><br>-->
+<!--    <form action="/xpage_sub" method="POST">-->
+<!--        <label for="course_id">Course ID:</label>-->
+<!--        <input type="text" id="course_id" name="course_id" required><br><br>-->
+
+<!--        <label for="course_name">Course Name:</label>-->
+<!--        <input type="text" id="course_name" name="course_name" required><br><br>-->
+
+<!--        <button type="submit">Create course</button>-->
+<!--    </form>-->
+<!--    <script>-->
+        <!--// JavaScript to handle copy-to-clipboard functionality-->
+<!--        document.addEventListener('DOMContentLoaded', function () {-->
+<!--            const copyButtons = document.querySelectorAll('.copy-btn');-->
+
+<!--            copyButtons.forEach(button => {-->
+<!--                button.addEventListener('click', function () {-->
+                    <!--const courseId = this.getAttribute('data-course-id'); // Get the course ID-->
+                    <!--const copyText = `classiq.pythonanywhere.com/join_classroom/${courseId}`; // Format the text-->
+                    <!--navigator.clipboard.writeText(copyText) // Copy to clipboard-->
+<!--                        .then(() => {-->
+<!--                            alert(`Copied: ${copyText}`);-->
+<!--                        })-->
+<!--                        .catch(err => {-->
+<!--                            console.error('Failed to copy text: ', err);-->
+<!--                        });-->
+<!--                });-->
+<!--            });-->
+<!--        });-->
+<!--    </script>-->
+<!--</body>-->
+<!--</html>-->
