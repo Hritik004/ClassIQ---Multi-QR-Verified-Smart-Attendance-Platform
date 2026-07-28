@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>QR Scanner</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
@@ -13,14 +13,49 @@
       box-sizing: border-box;
     }
 
+    html, body {
+      height: 100%;
+    }
+
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
       min-height: 100vh;
       padding: 20px;
       color: #333;
+      position: relative;
+      transition: padding 0.3s ease;
     }
 
+    /* ===== Back button ===== */
+    .back-btn {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 2000;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.9);
+      color: #2a5298;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 30px;
+      font-size: 0.95em;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+
+    .back-btn:hover {
+      background: #fff;
+      transform: translateX(-3px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    /* ===== Normal layout ===== */
     .scanner-container {
       max-width: 600px;
       margin: 0 auto;
@@ -29,6 +64,7 @@
       border-radius: 20px;
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
       overflow: hidden;
+      transition: all 0.3s ease;
     }
 
     .header {
@@ -37,17 +73,7 @@
       padding: 30px;
       text-align: center;
       position: relative;
-    }
-
-    .header::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="qr-pattern" width="20" height="20" patternUnits="userSpaceOnUse"><rect width="20" height="20" fill="none"/><rect x="2" y="2" width="4" height="4" fill="white" opacity="0.1"/><rect x="14" y="14" width="4" height="4" fill="white" opacity="0.1"/><rect x="8" y="8" width="2" height="2" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23qr-pattern)"/></svg>');
-      pointer-events: none;
+      transition: all 0.3s ease;
     }
 
     .header h1 {
@@ -67,6 +93,7 @@
     .scanner-section {
       padding: 40px;
       text-align: center;
+      transition: padding 0.3s ease;
     }
 
     .scanner-wrapper {
@@ -87,10 +114,45 @@
 
     #reader {
       width: 320px !important;
+      max-width: 100%;
       margin: auto !important;
       border-radius: 10px;
       overflow: hidden;
       box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .start-camera-wrap {
+      margin-bottom: 20px;
+    }
+
+    .start-camera-btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 14px 32px;
+      border-radius: 30px;
+      font-size: 1.05em;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 6px 18px rgba(102, 126, 234, 0.35);
+      transition: all 0.2s ease;
+    }
+
+    .start-camera-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 22px rgba(102, 126, 234, 0.45);
+    }
+
+    .start-camera-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .camera-status {
+      margin-top: 10px;
+      font-size: 0.85em;
+      color: #666;
     }
 
     #result {
@@ -130,26 +192,6 @@
       margin: 15px 0;
     }
 
-    .qr-list ul {
-      list-style: none;
-      padding: 0;
-    }
-
-    .qr-list li {
-      background: #f8f9fa;
-      margin: 8px 0;
-      padding: 12px 15px;
-      border-radius: 8px;
-      border-left: 4px solid #28a745;
-      font-family: 'Courier New', monospace;
-      transition: all 0.3s ease;
-    }
-
-    .qr-list li:hover {
-      background: #e9f7ef;
-      transform: translateX(5px);
-    }
-
     .status-badge {
       display: inline-block;
       padding: 6px 12px;
@@ -163,24 +205,6 @@
       background: #fff3cd;
       color: #856404;
       border: 1px solid #ffeeba;
-    }
-
-    .status-complete {
-      background: #d1edff;
-      color: #0c5460;
-      border: 1px solid #bee5eb;
-    }
-
-    .status-success {
-      background: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
-    }
-
-    .status-error {
-      background: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f5c6cb;
     }
 
     .scanner-info {
@@ -211,13 +235,12 @@
 
     .loading-animation {
       display: inline-block;
-      width: 20px;
-      height: 20px;
-      border: 2px solid #f3f3f3;
-      border-top: 2px solid #667eea;
+      width: 24px;
+      height: 24px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #667eea;
       border-radius: 50%;
       animation: spin 1s linear infinite;
-      margin-left: 10px;
     }
 
     @keyframes spin {
@@ -230,71 +253,387 @@
     }
 
     @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
-    @media (max-width: 768px) {
-      .scanner-container {
-        margin: 10px;
-        border-radius: 15px;
-      }
-
-      .header {
-        padding: 20px;
-      }
-
-      .header h1 {
-        font-size: 1.8em;
-      }
-
-      .scanner-section {
-        padding: 20px;
-      }
-
-      #reader {
-        width: 280px !important;
-      }
-
-      .scanner-wrapper {
-        padding: 15px;
-      }
+    /* ===================================================== */
+    /* ===== CAMERA MODE (FULL SCREEN) ===================== */
+    /* ===================================================== */
+    body.camera-mode {
+      padding: 0 !important;
+      margin: 0 !important;
+      background: #000;
+      overflow: hidden;
     }
 
-    /* Override html5-qrcode styles */
-    #reader__dashboard_section {
+    body.camera-mode .header,
+    body.camera-mode .scanner-info,
+    body.camera-mode .start-camera-wrap,
+    body.camera-mode .progress-bar,
+    body.camera-mode .progress-text,
+    body.camera-mode #result {
       display: none !important;
     }
 
-    #reader__camera_selection {
-      margin-bottom: 15px;
+    body.camera-mode .scanner-container {
+      max-width: 100% !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      background: #000 !important;
+      height: 100vh !important;
+      width: 100vw !important;
     }
 
-    #reader select {
-      padding: 8px 12px;
-      border-radius: 8px;
-      border: 2px solid #ddd;
-      font-size: 14px;
-      background: white;
+    body.camera-mode .scanner-section {
+      padding: 0 !important;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    body.camera-mode .scanner-wrapper {
+      border: none !important;
+      border-radius: 0 !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      background: #000 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+    }
+
+    /* Force camera element to fill viewport */
+    body.camera-mode #reader {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      max-width: none !important;
+      border: none !important;
+      box-shadow: none !important;
+      z-index: 1000;
+      background: #000 !important;
+    }
+
+    /* Stretch video feed to fill screen edge-to-edge */
+    body.camera-mode #reader video {
+      width: 100vw !important;
+      height: 100vh !important;
+      object-fit: cover !important;
+      border-radius: 0 !important;
+    }
+
+    /* Hide internal library dark square overlay and camera icons */
+    #reader__scan_region {
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
+    #reader__scan_region img,
+    #reader__scan_region svg {
+      display: none !important;
+    }
+
+    /* ===================================================== */
+    /* ===== 4 CORNER LINES ONLY (NO INNER SQUARE) ========= */
+    /* ===================================================== */
+    .scan-corners-container {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 260px;
+      height: 260px;
+      z-index: 1200;
+      pointer-events: none;
+    }
+
+    body.camera-mode .scan-corners-container {
+      display: block;
+    }
+
+    .corner {
+      position: absolute;
+      width: 36px;
+      height: 36px;
+      border-color: #ffffff;
+      border-style: solid;
+      border-width: 0;
+      filter: drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.4));
+    }
+
+    .corner.top-left {
+      top: 0;
+      left: 0;
+      border-top-width: 4px;
+      border-left-width: 4px;
+      border-top-left-radius: 6px;
+    }
+
+    .corner.top-right {
+      top: 0;
+      right: 0;
+      border-top-width: 4px;
+      border-right-width: 4px;
+      border-top-right-radius: 6px;
+    }
+
+    .corner.bottom-left {
+      bottom: 0;
+      left: 0;
+      border-bottom-width: 4px;
+      border-left-width: 4px;
+      border-bottom-left-radius: 6px;
+    }
+
+    .corner.bottom-right {
+      bottom: 0;
+      right: 0;
+      border-bottom-width: 4px;
+      border-right-width: 4px;
+      border-bottom-right-radius: 6px;
+    }
+
+    /* Top camera UI overlay */
+    .camera-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 1500;
+      padding: 70px 16px 16px;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.4) 70%, rgba(0,0,0,0) 100%);
+      text-align: center;
+      color: white;
+      pointer-events: none;
+    }
+
+    body.camera-mode .camera-overlay {
+      display: block;
+    }
+
+    .camera-overlay .overlay-course {
+      font-size: 0.9em;
+      opacity: 0.85;
+      margin-bottom: 10px;
+      letter-spacing: 0.3px;
+    }
+
+    .overlay-dots {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .overlay-dot {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1em;
+      background: rgba(255,255,255,0.15);
+      border: 2px solid rgba(255,255,255,0.5);
+      transition: all 0.3s ease;
+    }
+
+    .overlay-dot.filled {
+      background: #28a745;
+      border-color: #28a745;
+      transform: scale(1.1);
+      box-shadow: 0 0 12px rgba(40,167,69,0.6);
+    }
+
+    .overlay-status-text {
+      font-size: 0.85em;
+      opacity: 0.9;
+    }
+
+    /* ===== ATTENDANCE MODAL ===== */
+    .status-modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(12px);
+      z-index: 3000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .status-modal-overlay.active {
+      display: flex;
+      animation: modalFadeIn 0.3s ease-out;
+    }
+
+    @keyframes modalFadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .result-card {
+      background: #ffffff;
+      width: 100%;
+      max-width: 420px;
+      border-radius: 24px;
+      padding: 35px 25px;
+      text-align: center;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+      animation: cardPopUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes cardPopUp {
+      from { transform: scale(0.85); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .icon-circle {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      margin: 0 auto 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .icon-circle.success {
+      background: #e8f5e9;
+      color: #2e7d32;
+      border: 4px solid #81c784;
+      box-shadow: 0 0 20px rgba(76, 175, 80, 0.3);
+    }
+
+    .icon-circle.error {
+      background: #ffebee;
+      color: #c62828;
+      border: 4px solid #e57373;
+      box-shadow: 0 0 20px rgba(239, 83, 80, 0.3);
+    }
+
+    .icon-circle.loading {
+      background: #e3f2fd;
+      border: 4px solid #64b5f6;
+    }
+
+    .big-sign {
+      font-size: 52px;
+      line-height: 1;
+      font-weight: bold;
+    }
+
+    .result-card h2 {
+      font-size: 1.6em;
+      margin-bottom: 10px;
+      color: #1e293b;
+    }
+
+    .result-card p {
+      color: #64748b;
+      font-size: 0.95em;
+      line-height: 1.5;
+      margin-bottom: 25px;
+    }
+
+    .course-badge-info {
+      background: #f1f5f9;
+      padding: 10px 16px;
+      border-radius: 12px;
+      display: inline-block;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 20px;
+      font-size: 0.9em;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    .modal-btn {
+      flex: 1;
+      padding: 14px 20px;
+      border-radius: 12px;
+      border: none;
+      font-weight: 600;
+      font-size: 0.95em;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+      color: white;
+      box-shadow: 0 4px 14px rgba(46, 125, 50, 0.3);
+    }
+
+    .btn-retry {
+      background: linear-gradient(135deg, #d32f2f 0%, #c62828 100%);
+      color: white;
+      box-shadow: 0 4px 14px rgba(211, 47, 47, 0.3);
+    }
+
+    .btn-secondary {
+      background: #f1f5f9;
+      color: #475569;
+    }
+
+    @media (max-width: 768px) {
+      .scanner-container { margin: 10px; border-radius: 15px; }
+      .header { padding: 20px; }
+      .header h1 { font-size: 1.8em; }
+      .scanner-section { padding: 20px; }
+      #reader { width: 100% !important; }
+      .scanner-wrapper { padding: 15px; }
+      .back-btn { top: 12px; left: 12px; padding: 8px 14px; font-size: 0.85em; }
+      .camera-overlay { padding: 60px 12px 12px; }
+      .overlay-dot { width: 30px; height: 30px; }
+      .scan-corners-container { width: 220px; height: 220px; }
     }
   </style>
 </head>
 <body>
+  <button class="back-btn" onclick="goBack()">&larr; Back</button>
+
+  <!-- 4 Corner Lines Overlay -->
+  <div class="scan-corners-container">
+    <div class="corner top-left"></div>
+    <div class="corner top-right"></div>
+    <div class="corner bottom-left"></div>
+    <div class="corner bottom-right"></div>
+  </div>
+
+  <!-- Top status camera overlay -->
+  <div class="camera-overlay" id="camera-overlay">
+    <div class="overlay-course">Course <strong>{{ course_id }}</strong></div>
+    <div class="overlay-dots" id="overlay-dots"></div>
+    <div class="overlay-status-text" id="overlay-status-text">0/4 codes detected</div>
+  </div>
+
+  <!-- STATUS MODAL -->
+  <div class="status-modal-overlay" id="status-modal">
+    <div class="result-card" id="modal-card-content"></div>
+  </div>
+
   <div class="scanner-container fade-in">
     <div class="header">
       <h1>🔍 QR Scanner - Course <span class="course-highlight">{{ course_id }}</span></h1>
     </div>
-
     <div class="scanner-section">
       <div class="scanner-info">
         <h3>📋 Instructions</h3>
-        <p>Position QR codes within the scanning area. The scanner will automatically detect and save unique codes (4 required).</p>
+        <p>Click "Start Camera" to begin. Position QR codes within the scanning area. The scanner will automatically detect and save unique codes (4 required).</p>
+      </div>
+
+      <div class="start-camera-wrap">
+        <button id="start-camera-btn" class="start-camera-btn" onclick="startCamera()">📷 Start Camera</button>
+        <div class="camera-status" id="camera-status"></div>
       </div>
 
       <div class="scanner-wrapper" id="scanner-wrapper">
@@ -312,8 +651,17 @@
 
   <script>
     let scannedQRCodes = [];
-    let html5QrcodeScanner;
+    let html5QrCode;
+    let cameraRunning = false;
     const courseId = {{ course_id }};
+
+    function goBack() {
+      if (document.referrer) {
+        window.history.back();
+      } else {
+        window.location.href = '/';
+      }
+    }
 
     function updateProgress() {
       const progressFill = document.getElementById('progress-fill');
@@ -335,6 +683,19 @@
       }
     }
 
+    function updateOverlay() {
+      const dotsEl = document.getElementById('overlay-dots');
+      const statusEl = document.getElementById('overlay-status-text');
+
+      dotsEl.innerHTML = Array.from({ length: 4 }, (_, i) =>
+        `<div class="overlay-dot ${i < scannedQRCodes.length ? 'filled' : ''}">${i < scannedQRCodes.length ? '✅' : ''}</div>`
+      ).join('');
+
+      statusEl.textContent = scannedQRCodes.length < 4
+        ? `${scannedQRCodes.length}/4 codes detected`
+        : 'All 4 codes detected!';
+    }
+
     function updateScannedList() {
       const resultDiv = document.getElementById('result');
       if (scannedQRCodes.length === 0) {
@@ -342,7 +703,7 @@
           <div style="text-align: center;">
             <div class="qr-icon">📱</div>
             <p><strong>Course ID:</strong> ${courseId}</p>
-            <p style="color: #666; font-size: 0.9em; margin-top: 10px;">No QR codes scanned yet. Point your camera at a QR code to begin.</p>
+            <p style="color: #666; font-size: 0.9em; margin-top: 10px;">No QR codes scanned yet. Click "Start Camera" to begin.</p>
           </div>
         `;
       } else {
@@ -371,6 +732,62 @@
         `;
       }
       updateProgress();
+      updateOverlay();
+    }
+
+    function showLoadingModal() {
+      const modal = document.getElementById('status-modal');
+      const card = document.getElementById('modal-card-content');
+      card.innerHTML = `
+        <div class="icon-circle loading">
+          <div class="loading-animation"></div>
+        </div>
+        <h2>Verifying Codes...</h2>
+        <p>Checking scanned QR codes with the backend server.</p>
+      `;
+      modal.classList.add('active');
+    }
+
+    function showSuccessModal() {
+      const modal = document.getElementById('status-modal');
+      const card = document.getElementById('modal-card-content');
+      card.innerHTML = `
+        <div class="icon-circle success">
+          <span class="big-sign">✓</span>
+        </div>
+        <h2>Attendance Marked!</h2>
+        <div class="course-badge-info">Course ID: ${courseId}</div>
+        <p>All 4 QR codes successfully matched and verified. Your attendance has been recorded.</p>
+        <div class="modal-actions">
+          <button class="modal-btn btn-success" onclick="goBack()">Done</button>
+        </div>
+      `;
+      modal.classList.add('active');
+    }
+
+    function showErrorModal(errorMessage) {
+      const modal = document.getElementById('status-modal');
+      const card = document.getElementById('modal-card-content');
+      card.innerHTML = `
+        <div class="icon-circle error">
+          <span class="big-sign">✕</span>
+        </div>
+        <h2>Attendance Failed</h2>
+        <div class="course-badge-info">Course ID: ${courseId}</div>
+        <p><strong>Reason:</strong> ${errorMessage || 'QR codes do not match backend record.'}</p>
+        <div class="modal-actions">
+          <button class="modal-btn btn-secondary" onclick="goBack()">Back</button>
+          <button class="modal-btn btn-retry" onclick="resetAndRetry()">Try Again</button>
+        </div>
+      `;
+      modal.classList.add('active');
+    }
+
+    function resetAndRetry() {
+      document.getElementById('status-modal').classList.remove('active');
+      scannedQRCodes = [];
+      updateScannedList();
+      startCamera();
     }
 
     function onScanSuccess(decodedText, decodedResult) {
@@ -379,15 +796,16 @@
         updateScannedList();
 
         if (scannedQRCodes.length === 4) {
-          html5QrcodeScanner.clear();
-          document.getElementById('result').innerHTML += `
-            <div style="margin-top: 20px; text-align: center;">
-              <span class="status-badge status-complete">🎉 Scanning complete! Saving data...</span>
-              <div class="loading-animation"></div>
-            </div>
-          `;
+          exitCameraMode();
+          if (html5QrCode) {
+            html5QrCode.stop().then(() => {
+              html5QrCode.clear();
+              cameraRunning = false;
+            }).catch(() => {});
+          }
 
-          // Send all 4 codes and course ID to backend
+          showLoadingModal();
+
           fetch('/save', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -399,45 +817,82 @@
           })
           .then(response => response.json())
           .then(data => {
-            const resultDiv = document.getElementById('result');
             if (data.success) {
-              resultDiv.innerHTML += `
-                <div style="margin-top: 15px; text-align: center;">
-                  <span class="status-badge status-success">✅ Successfully saved to database!</span>
-                </div>
-              `;
+              showSuccessModal();
             } else {
-              resultDiv.innerHTML += `
-                <div style="margin-top: 15px; text-align: center;">
-                  <span class="status-badge status-error">❌ Error saving data: ${data.error}</span>
-                </div>
-              `;
+              showErrorModal(data.error || 'Scanned QR codes do not match.');
             }
           })
           .catch(error => {
             console.error('Error:', error);
-            document.getElementById('result').innerHTML += `
-              <div style="margin-top: 15px; text-align: center;">
-                <span class="status-badge status-error">❌ Network error occurred!</span>
-              </div>
-            `;
+            showErrorModal('Network error occurred while contacting backend server.');
           });
         }
       }
     }
 
     function onScanFailure(error) {
-      // Handle scan failure, usually better to ignore
+      // Ignore frame scan failures
+    }
+
+    function exitCameraMode() {
+      document.body.classList.remove('camera-mode');
+    }
+
+    function pickBackCameraId(cameras) {
+      if (!cameras || cameras.length === 0) return null;
+      if (cameras.length === 1) return cameras[0].id;
+      const backCamera = cameras.find(cam =>
+        /back|rear|environment/i.test(cam.label)
+      );
+      return backCamera ? backCamera.id : cameras[cameras.length - 1].id;
+    }
+
+    function startCamera() {
+      const startBtn = document.getElementById('start-camera-btn');
+      const statusEl = document.getElementById('camera-status');
+
+      if (cameraRunning) return;
+
+      startBtn.disabled = true;
+      statusEl.textContent = 'Requesting camera access...';
+
+      if (!html5QrCode) {
+        html5QrCode = new Html5Qrcode("reader");
+      }
+
+      Html5Qrcode.getCameras().then(cameras => {
+        if (!cameras || cameras.length === 0) {
+          statusEl.textContent = 'No camera found on this device.';
+          startBtn.disabled = false;
+          return;
+        }
+
+        const cameraId = pickBackCameraId(cameras);
+        const config = { fps: 15 };
+
+        html5QrCode.start(cameraId, config, onScanSuccess, onScanFailure)
+          .then(() => {
+            cameraRunning = true;
+            document.body.classList.add('camera-mode');
+            updateOverlay();
+            statusEl.textContent = '';
+            startBtn.disabled = false;
+            startBtn.textContent = '📷 Camera Running';
+          })
+          .catch(err => {
+            console.error('Camera start error:', err);
+            statusEl.textContent = 'Could not start camera. Check permissions.';
+            startBtn.disabled = false;
+          });
+      }).catch(err => {
+        console.error('Camera list error:', err);
+        statusEl.textContent = 'Could not access cameras. Check permissions.';
+        startBtn.disabled = false;
+      });
     }
 
     window.onload = function() {
-      html5QrcodeScanner = new Html5QrcodeScanner(
-        "reader", {
-          fps: 10,
-          qrbox: 250,
-          aspectRatio: 1.0
-        });
-      html5QrcodeScanner.render(onScanSuccess, onScanFailure);
       updateScannedList();
     }
   </script>
