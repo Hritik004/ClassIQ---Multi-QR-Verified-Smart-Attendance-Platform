@@ -431,436 +431,551 @@ def google_login():
 
 
 
+from flask import request, redirect, session, flash
+from sqlalchemy import text
 
+@app.route('/create_classroom', methods=['POST'])
+def create_classroom():
+    if 'user_id' not in session:
+        return redirect('/login')
 
-@app.route('/student/dashboard')
-def student_dashboard():
-    roll_no = session.get("roll_no")  # ✅ read roll_no from session
-    if not roll_no:
-        return redirect(url_for("login_student"))  # ✅ must be function name, not HTML file
+    class_name = request.form.get('name', '').strip()
 
-    # --- First connection: enrolled courses ---
-    connection = pymysql.connect(
-        host='classiq.mysql.pythonanywhere-services.com',
-        user='classiq',
-        password='pythonanywhereman.com',
-        database='classiq$accounts',
-        cursorclass=pymysql.cursors.DictCursor
-    )
-
-    with connection.cursor() as cursor:
-        sql = "SELECT course_id, course_name FROM enrolled WHERE roll_no = %s"
-        cursor.execute(sql, (roll_no,))
-        courses = cursor.fetchall()
-    connection.close()
-
-    # --- Second connection: classrooms for attendance ---
-    connection2 = pymysql.connect(
-        host='classiq.mysql.pythonanywhere-services.com',
-        user='classiq',
-        password='pythonanywhereman.com',
-        database='classiq$classrooms',
-        cursorclass=pymysql.cursors.DictCursor
-    )
-
-    for course in courses:
-        table_name = f"classroom{course['course_id']}"  # e.g., classroom156
-
-        try:
-            with connection2.cursor() as cursor:
-                sql = f"""
-                    SELECT c.current,
-                           (SELECT total FROM {table_name} WHERE is_master = TRUE LIMIT 1) AS total
-                    FROM {table_name} c
-                    WHERE c.roll_no = %s
-                    """
-                cursor.execute(sql, (roll_no,))
-                result = cursor.fetchone()
-
-                if result and result["total"] > 0:
-                    attendance = (result["current"] / result["total"]) * 100
-                else:
-                    attendance = 0.0
-        except Exception as e:
-            # if table doesn't exist or error occurs
-            attendance = None
-
-        course["attendance"] = round(attendance, 2) if attendance is not None else "N/A"
-
-    connection2.close()
-
-    # ✅ Now pass roll_no, courses with attendance to template
-    return render_template("student_courses.html", roll_no=roll_no, courses=courses)
-
-
-    # ---- Step 3: Send to template ----
-    return render_template("student_courses.html", roll_no=roll_no, courses=courses)
-
-
-
-
-@app.route('/xpage')
-def xpage():
-    # Ensure the user is logged in
-    teacher_id = session.get('user_id')
-    print(f"xpage user_id: {session.get('user_id')}")
-    if not teacher_id:
-        return redirect(url_for('login_faculty'))
-
-    # Establish MySQL connection using pymysql
-    try:
-        connection = pymysql.connect(
-            host='classiq.mysql.pythonanywhere-services.com',
-            user='classiq',   # e.g., 'yourusername'
-            password='pythonanywhereman.com',        # Replace with your MySQL password
-            database='classiq$accounts',  # e.g., 'yourusername$courses'
-            cursorclass=pymysql.cursors.DictCursor  # Ensures results are returned as dictionaries
+    if class_name:
+        db.session.execute(
+            text("""
+                INSERT INTO classrooms (name, faculty_id)
+                VALUES (:name, :faculty_id)
+            """),
+            {
+                "name": class_name,
+                "faculty_id": session['user_id']
+            }
         )
-        with connection.cursor() as cursor:
-            # Query the database for course_id and course_name matching the teacher_id
-            query = "SELECT course_id, course_name FROM Courses WHERE teacher_id = %s"
-            cursor.execute(query, (teacher_id,))
-            courses = cursor.fetchall()
+        db.session.commit()
 
-    except pymysql.MySQLError as err:
-        print(f"Error: {err}")
-        return "An error occurred while connecting to the database.", 500
+    return redirect('/dashboard_user')
 
-    finally:
-        # Close the connection
-        if 'connection' in locals():
-            connection.close()
 
-    # Render the xpage.html template with the courses
-    return render_template('xpage.html', courses=courses)
+@app.route('/join_classroom', methods=['POST'])
+def join_classroom():
+    if 'user_id' not in session:
+        return redirect('/login')
 
-#----------xpage_sub-----------------------------------------------------------------------------
-@app.route('/xpage_sub', methods=['GET', 'POST'])
-def xpage_sub():
-    if request.method == 'POST':
-        course_id = request.form['course_id']
-        course_name = request.form['course_name']
-        teacher_id = session.get('user_id')   # assume user is logged in
+    classroom_id = request.form.get('classroom_id', '').strip()
 
-        # --- First DB: check + insert into courses table ---
-        conn1 = pymysql.connect(
-            host="classiq.mysql.pythonanywhere-services.com",
-            user="classiq",
-            password="pythonanywhereman.com",
-            database="classiq$accounts"
-        )
-        cur1 = conn1.cursor()
+    if classroom_id and classroom_id.isdigit():
+        cid = int(classroom_id)
 
-        # check if (course_id, teacher_id) already exists
-        check_query = """
-            SELECT 1 FROM Courses WHERE course_id = %s AND teacher_id = %s
-        """
-        cur1.execute(check_query, (course_id, teacher_id))
-        exists = cur1.fetchone()
+        # 1. Fetch classroom details to check who created it
+        classroom = db.session.execute(
+            text("SELECT id, faculty_id FROM classrooms WHERE id = :cid"),
+            {"cid": cid}
+        ).mappings().fetchone()
 
-        if exists:
-            cur1.close()
-            conn1.close()
-            return f"Course ID {course_id} is already assigned to you."
+        if classroom:
+            # 2. THE LOGIC: Block user if they are the creator/faculty of this classroom
+            if classroom['faculty_id'] == session['user_id']:
+                # Action blocked: User cannot join their own class
+                # (Optional: You could use flash('You cannot join your own class.') here)
+                return redirect('/dashboard_user')
 
-        # insert new record
-        insert_query = """
-            INSERT INTO Courses (course_id, course_name, teacher_id)
-            VALUES (%s, %s, %s)
-        """
-        cur1.execute(insert_query, (course_id, course_name, teacher_id))
-        conn1.commit()
-        cur1.close()
-        conn1.close()
-
-        # --- Second DB: create a table for this course ---
-        conn2 = pymysql.connect(
-            host="classiq.mysql.pythonanywhere-services.com",
-            user="classiq",
-            password="pythonanywhereman.com",
-            database="classiq$classrooms"
-        )
-        cur2 = conn2.cursor()
-
-        table_name = f"classroom{course_id}"
-        create_table_query = f"""
-            CREATE TABLE IF NOT EXISTS `{table_name}` (
-                roll_no INT NOT NULL PRIMARY KEY,
-                student_name VARCHAR(100) DEFAULT NULL,
-                original VARCHAR(50) DEFAULT NULL,
-                total INT DEFAULT '0',
-                current INT DEFAULT '0',
-                is_master BOOLEAN NOT NULL DEFAULT FALSE
+            # 3. Otherwise, proceed to enroll the student
+            db.session.execute(
+                text("""
+                    INSERT IGNORE INTO classroom_students (classroom_id, student_id)
+                    VALUES (:cid, :sid)
+                """),
+                {
+                    "cid": cid,
+                    "sid": session['user_id']
+                }
             )
-        """
+            db.session.commit()
+
+    return redirect('/dashboard_user')
 
 
-        cur2.execute(create_table_query)
-        conn2.commit()
-        cur2.close()
-        conn2.close()
-        print("xpage_sub: classroom creation successfull")
-        return redirect(url_for('xpage'))
 
-    else:
-        return redirect(url_for('xpage'))
 
-#teacher
-@app.route('/classroom_viewer/<int:n>')
-def classroom_viewer(n):
-    table_name = f"classroom{n}"
-    students = []
+@app.route('/delete_classroom', methods=['POST'])
+def delete_classroom():
+    if 'user_id' not in session:
+        return redirect('/login')
 
-    try:
-        # connect inside route
-        connection = pymysql.connect(
-            host="classiq.mysql.pythonanywhere-services.com",
-            user="classiq",
-            password="pythonanywhereman.com",
-            database="classiq$classrooms",
-            cursorclass=pymysql.cursors.DictCursor
+    classroom_id = request.form.get('classroom_id')
+
+    if classroom_id and classroom_id.isdigit():
+        # Deletes the class ONLY if the logged-in user is the faculty owner
+        db.session.execute(
+            text("""
+                DELETE FROM classrooms
+                WHERE id = :cid AND faculty_id = :uid
+            """),
+            {
+                "cid": int(classroom_id),
+                "uid": session['user_id']
+            }
         )
-        with connection.cursor() as cursor:
-            cursor.execute(f"SELECT student_name FROM {table_name}")
-            result = cursor.fetchall()
-            # extract just the student_name values into a list
-            students = [row["student_name"] for row in result]
-    except Exception as e:
-        return f"Error: {e}"
-    finally:
-        if 'connection' in locals():
-            connection.close()
+        db.session.commit()
 
-    return render_template("classroom_viewer.html", students=students, table_name=table_name, classroom_no=n)
+    return redirect('/dashboard_user')
 
 
-@app.route('/join_classroom/<int:n>', methods=['GET', 'POST'])
-def join_classroom(n):
-    #n is course_id
-    if 'roll_no' not in session:
-        return "You need to be logged in"
-    roll_no=session.get('roll_no')
+@app.route('/leave_classroom', methods=['POST'])
+def leave_classroom():
+    if 'user_id' not in session:
+        return redirect('/login')
 
+    classroom_id = request.form.get('classroom_id')
 
-    conn1 = pymysql.connect(
-            host="classiq.mysql.pythonanywhere-services.com",
-            user="classiq",
-            password="pythonanywhereman.com",
-            database="classiq$accounts" #for enrolled and Courses
+    if classroom_id and classroom_id.isdigit():
+        # Deletes the enrollment record linking this user to the class
+        db.session.execute(
+            text("""
+                DELETE FROM classroom_students
+                WHERE classroom_id = :cid AND student_id = :uid
+            """),
+            {
+                "cid": int(classroom_id),
+                "uid": session['user_id']
+            }
         )
-    cur1 = conn1.cursor()
+        db.session.commit()
 
-    cur1.execute("SELECT course_name FROM Courses WHERE course_id = %s", (n,))
-    course_name=cur1.fetchone()[0]
-    print(f"course name is {course_name}--------------------------------------------------------------------------")
-    cur1.execute("SELECT name FROM student_info WHERE roll = %s", (roll_no,))
-    student_name=cur1.fetchone()[0]
-    print(f"student name is {student_name}----------------------------------------------------------------")
-    insert_query = """
-            INSERT INTO enrolled (roll_no, course_name, course_id)
-            VALUES (%s, %s, %s)
-        """
-    cur1.execute(insert_query, (roll_no, course_name, n))
-    conn1.commit()
-    cur1.close()
-    conn1.close()
-    #------connection for classrooms
-    conn2 = pymysql.connect(
-            host="classiq.mysql.pythonanywhere-services.com",
-            user="classiq",
-            password="pythonanywhereman.com",
-            database="classiq$classrooms"
-        )
-    cur2 = conn2.cursor()
-    # insert new record
-    try:
-        insert_query = f"""
-            INSERT INTO classroom{n} (roll_no, student_name, original, total, current, is_master)
-            VALUES (%s, %s, %s, %s, %s, %s)
-        """
-        cur2.execute(insert_query, (roll_no, student_name, None, 0, 0, False))
-        conn2.commit()  # don’t forget to commit the insert
-    except Exception as e:
-        print(f"Error inserting into classroom{n}: {e}------------------------------------------------------------")
-        conn2.rollback()
-
-    # Check how many rows are in the table
-    sql_count = f"SELECT COUNT(*) AS cnt FROM classroom{n}"
-    cur2.execute(sql_count)
-    count_result = cur2.fetchone()
-    print(f"{count_result}----------------------------")
-    # If only 1 row exists, set is_master = TRUE for that row
-    try:
-        if count_result[0] == 1:
-            sql_update_master = f"UPDATE classroom{n} SET is_master = TRUE LIMIT 1"
-            cur2.execute(sql_update_master)
-        conn2.commit()
-    except Exception as e:
-        print(f"Error while setting master row in classroom{n}: {e}")
-        conn2.rollback()
-
-    cur2.close()
-    conn2.close()
-    return redirect(url_for('student_dashboard'))
-
-@app.route("/attendance/<int:course_id>")
-def attendance(course_id):
-    table_name = f"classroom{course_id}"
-
-    try:
-        conn = get_connection_classrooms()
-        cur = conn.cursor(pymysql.cursors.DictCursor)
-
-        # total from the master row
-        cur.execute(f"SELECT `total` FROM `{table_name}` WHERE `is_master`=1 LIMIT 1;")
-        row = cur.fetchone()
-        total = row["total"] if row and row.get("total") is not None else 0
-        # list of students: roll_no + current (ALL rows, including master row)
-        cur.execute(f"SELECT `roll_no`, `current` FROM `{table_name}`;")
-        attendance_data = cur.fetchall()  # [{roll_no:..., current:...}, ...]
-        print(attendance_data)
+    return redirect('/dashboard_user')
 
 
-    except Exception as e:
-        # Optional: log the error for debugging
-        app.logger.exception("Error loading attendance for %s", table_name)
-        abort(500, description=str(e))
-    finally:
-        try:
-            conn.close()
-        except Exception:
-            pass
-
-    return render_template(
-        "attendance.html",
-        total=total,
-        attendance=attendance_data,
-        table_name=table_name,
-        classroom_no=course_id
-    )
 
 
-@app.route('/take_attendance/<int:n>')
-def take_attendance(n):
-    table_name = f"classroom{n}"
-    today_col = datetime.now().strftime("%d.%m.%y")
+# @app.route('/student/dashboard')
+# def student_dashboard():
+#     roll_no = session.get("roll_no")  # ✅ read roll_no from session
+#     if not roll_no:
+#         return redirect(url_for("login_student"))  # ✅ must be function name, not HTML file
 
-    img_dir = os.path.join(app.static_folder, "images")
-    os.makedirs(img_dir, exist_ok=True)
+#     # --- First connection: enrolled courses ---
+#     connection = pymysql.connect(
+#         host='classiq.mysql.pythonanywhere-services.com',
+#         user='classiq',
+#         password='pythonanywhereman.com',
+#         database='classiq$accounts',
+#         cursorclass=pymysql.cursors.DictCursor
+#     )
 
-    try:
-        connection = pymysql.connect(
-            host="classiq.mysql.pythonanywhere-services.com",
-            user="classiq",
-            password="pythonanywhereman.com",
-            database="classiq$classrooms",
-            cursorclass=pymysql.cursors.DictCursor
-        )
-        with connection.cursor() as cursor:
-            # Check / create today's column
-            cursor.execute(f"SHOW COLUMNS FROM {table_name} LIKE %s", (today_col,))
-            if not cursor.fetchone():
-                cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN `{today_col}` VARCHAR(255)")
-                connection.commit()
+#     with connection.cursor() as cursor:
+#         sql = "SELECT course_id, course_name FROM enrolled WHERE roll_no = %s"
+#         cursor.execute(sql, (roll_no,))
+#         courses = cursor.fetchall()
+#     connection.close()
 
-            # --- generate exactly 4 hex codes, each 5 digits ---
-            codes = [''.join(random.choices('0123456789abcdef', k=5)) for _ in range(4)]
+#     # --- Second connection: classrooms for attendance ---
+#     connection2 = pymysql.connect(
+#         host='classiq.mysql.pythonanywhere-services.com',
+#         user='classiq',
+#         password='pythonanywhereman.com',
+#         database='classiq$classrooms',
+#         cursorclass=pymysql.cursors.DictCursor
+#     )
 
-            # Save original codes to "original" column of first row (comma-separated, no spaces)
-            codes_str = ",".join(codes)
-            cursor.execute(
-                f"UPDATE {table_name} SET original=%s, total=total+1 WHERE is_master = TRUE LIMIT 1",
-                (codes_str,)
-            )
-            connection.commit()
+#     for course in courses:
+#         table_name = f"classroom{course['course_id']}"  # e.g., classroom156
 
-            # Create QR images and replace list entries with filenames (same-index replacement)
-            for i, code in enumerate(codes):
-                img = qrcode.make(code)
-                fname = f"{code}_{''.join(random.choices(string.ascii_lowercase+string.digits, k=6))}.png"
-                img.save(os.path.join(img_dir, fname))
-                codes[i] = fname  # replace code with filename in the SAME list
+#         try:
+#             with connection2.cursor() as cursor:
+#                 sql = f"""
+#                     SELECT c.current,
+#                           (SELECT total FROM {table_name} WHERE is_master = TRUE LIMIT 1) AS total
+#                     FROM {table_name} c
+#                     WHERE c.roll_no = %s
+#                     """
+#                 cursor.execute(sql, (roll_no,))
+#                 result = cursor.fetchone()
 
-    except Exception as e:
-        return f"Error: {e}"
-    finally:
-        if 'connection' in locals():
-            connection.close()
+#                 if result and result["total"] > 0:
+#                     attendance = (result["current"] / result["total"]) * 100
+#                 else:
+#                     attendance = 0.0
+#         except Exception as e:
+#             # if table doesn't exist or error occurs
+#             attendance = None
 
-    # 'codes' now holds the filenames; pass to template
-    return render_template("take_attendance.html", filenames=codes, table_name=table_name, today_col=today_col,course_id=n)
+#         course["attendance"] = round(attendance, 2) if attendance is not None else "N/A"
 
-@app.route('/delete', methods=['POST'])
-def delete_original_codes():
-    print("Delete route triggered")  # Debug
-    try:
-        data = request.get_json()
-        print("Received data:", data)  # Debug
-        course_id = data.get('course_id')
-        print("Course ID:", course_id)  # Debug
+#     connection2.close()
 
-        if not course_id:
-            return jsonify({'success': False, 'error': 'Course ID not provided'}), 400
+#     # ✅ Now pass roll_no, courses with attendance to template
+#     return render_template("student_courses.html", roll_no=roll_no, courses=courses)
 
-        table_name = f"classroom{course_id}"
-        print("Resolved table name:", table_name)
 
-        connection = pymysql.connect(
-            host="classiq.mysql.pythonanywhere-services.com",
-            user="classiq",
-            password="pythonanywhereman.com",
-            database="classiq$classrooms",
-            cursorclass=pymysql.cursors.DictCursor
-        )
+#     # ---- Step 3: Send to template ----
+#     return render_template("student_courses.html", roll_no=roll_no, courses=courses)
 
-        with connection:
-            with connection.cursor() as cursor:
-                query = f"UPDATE {table_name} SET original = NULL WHERE is_master = 1 LIMIT 1"
-                print("Running query:", query)
-                cursor.execute(query)
-                rows_affected = cursor.rowcount
-                print("Rows affected:", rows_affected)
 
-                connection.commit()
 
-                if rows_affected > 0:
-                    return jsonify({
-                        'success': True,
-                        'message': f'Successfully cleared original codes for {table_name}',
-                        'rows_affected': rows_affected
-                    })
-                else:
-                    return jsonify({
-                        'success': False,
-                        'message': f'No master row found in {table_name}'
-                    })
 
-    except Exception as e:
-        print("Error:", str(e))
-        return jsonify({'success': False, 'error': str(e)}), 500
+# @app.route('/xpage')
+# def xpage():
+#     # Ensure the user is logged in
+#     teacher_id = session.get('user_id')
+#     print(f"xpage user_id: {session.get('user_id')}")
+#     if not teacher_id:
+#         return redirect(url_for('login_faculty'))
 
-@app.route('/login_faculty', methods=['POST', 'GET'])
-def login_faculty():
-    return render_template('login_faculty2.html')
+#     # Establish MySQL connection using pymysql
+#     try:
+#         connection = pymysql.connect(
+#             host='classiq.mysql.pythonanywhere-services.com',
+#             user='classiq',   # e.g., 'yourusername'
+#             password='pythonanywhereman.com',        # Replace with your MySQL password
+#             database='classiq$accounts',  # e.g., 'yourusername$courses'
+#             cursorclass=pymysql.cursors.DictCursor  # Ensures results are returned as dictionaries
+#         )
+#         with connection.cursor() as cursor:
+#             # Query the database for course_id and course_name matching the teacher_id
+#             query = "SELECT course_id, course_name FROM Courses WHERE teacher_id = %s"
+#             cursor.execute(query, (teacher_id,))
+#             courses = cursor.fetchall()
 
-@app.route('/login_facultyy', methods=['POST'])
-def login_facultyy():
-    print("This is facultyy")
-    data = request.get_json()
-    email = data.get('email')
-    print(email)
-    password = data.get('password')
-    print(password)
-    user = User.query.filter_by(email=email).first()
-    if user and check_password_hash(user.password, password):
-        print("entered if")
-        session["user_id"] = user.id
-        print(f"session user_id: {session.get('user_id')}")
-        session["email"] = user.email
-        return jsonify({"success": True, "message": "Login successful"})
-    else:
-        print("entered else")
-        return jsonify({"success": False, "message": "Invalid email or password"}), 401
+#     except pymysql.MySQLError as err:
+#         print(f"Error: {err}")
+#         return "An error occurred while connecting to the database.", 500
+
+#     finally:
+#         # Close the connection
+#         if 'connection' in locals():
+#             connection.close()
+
+#     # Render the xpage.html template with the courses
+#     return render_template('xpage.html', courses=courses)
+
+# #----------xpage_sub-----------------------------------------------------------------------------
+# @app.route('/xpage_sub', methods=['GET', 'POST'])
+# def xpage_sub():
+#     if request.method == 'POST':
+#         course_id = request.form['course_id']
+#         course_name = request.form['course_name']
+#         teacher_id = session.get('user_id')   # assume user is logged in
+
+#         # --- First DB: check + insert into courses table ---
+#         conn1 = pymysql.connect(
+#             host="classiq.mysql.pythonanywhere-services.com",
+#             user="classiq",
+#             password="pythonanywhereman.com",
+#             database="classiq$accounts"
+#         )
+#         cur1 = conn1.cursor()
+
+#         # check if (course_id, teacher_id) already exists
+#         check_query = """
+#             SELECT 1 FROM Courses WHERE course_id = %s AND teacher_id = %s
+#         """
+#         cur1.execute(check_query, (course_id, teacher_id))
+#         exists = cur1.fetchone()
+
+#         if exists:
+#             cur1.close()
+#             conn1.close()
+#             return f"Course ID {course_id} is already assigned to you."
+
+#         # insert new record
+#         insert_query = """
+#             INSERT INTO Courses (course_id, course_name, teacher_id)
+#             VALUES (%s, %s, %s)
+#         """
+#         cur1.execute(insert_query, (course_id, course_name, teacher_id))
+#         conn1.commit()
+#         cur1.close()
+#         conn1.close()
+
+#         # --- Second DB: create a table for this course ---
+#         conn2 = pymysql.connect(
+#             host="classiq.mysql.pythonanywhere-services.com",
+#             user="classiq",
+#             password="pythonanywhereman.com",
+#             database="classiq$classrooms"
+#         )
+#         cur2 = conn2.cursor()
+
+#         table_name = f"classroom{course_id}"
+#         create_table_query = f"""
+#             CREATE TABLE IF NOT EXISTS `{table_name}` (
+#                 roll_no INT NOT NULL PRIMARY KEY,
+#                 student_name VARCHAR(100) DEFAULT NULL,
+#                 original VARCHAR(50) DEFAULT NULL,
+#                 total INT DEFAULT '0',
+#                 current INT DEFAULT '0',
+#                 is_master BOOLEAN NOT NULL DEFAULT FALSE
+#             )
+#         """
+
+
+#         cur2.execute(create_table_query)
+#         conn2.commit()
+#         cur2.close()
+#         conn2.close()
+#         print("xpage_sub: classroom creation successfull")
+#         return redirect(url_for('xpage'))
+
+#     else:
+#         return redirect(url_for('xpage'))
+
+# #teacher
+# @app.route('/classroom_viewer/<int:n>')
+# def classroom_viewer(n):
+#     table_name = f"classroom{n}"
+#     students = []
+
+#     try:
+#         # connect inside route
+#         connection = pymysql.connect(
+#             host="classiq.mysql.pythonanywhere-services.com",
+#             user="classiq",
+#             password="pythonanywhereman.com",
+#             database="classiq$classrooms",
+#             cursorclass=pymysql.cursors.DictCursor
+#         )
+#         with connection.cursor() as cursor:
+#             cursor.execute(f"SELECT student_name FROM {table_name}")
+#             result = cursor.fetchall()
+#             # extract just the student_name values into a list
+#             students = [row["student_name"] for row in result]
+#     except Exception as e:
+#         return f"Error: {e}"
+#     finally:
+#         if 'connection' in locals():
+#             connection.close()
+
+#     return render_template("classroom_viewer.html", students=students, table_name=table_name, classroom_no=n)
+
+
+# @app.route('/join_classroom/<int:n>', methods=['GET', 'POST'])
+# def join_classroom(n):
+#     #n is course_id
+#     if 'roll_no' not in session:
+#         return "You need to be logged in"
+#     roll_no=session.get('roll_no')
+
+
+#     conn1 = pymysql.connect(
+#             host="classiq.mysql.pythonanywhere-services.com",
+#             user="classiq",
+#             password="pythonanywhereman.com",
+#             database="classiq$accounts" #for enrolled and Courses
+#         )
+#     cur1 = conn1.cursor()
+
+#     cur1.execute("SELECT course_name FROM Courses WHERE course_id = %s", (n,))
+#     course_name=cur1.fetchone()[0]
+#     print(f"course name is {course_name}--------------------------------------------------------------------------")
+#     cur1.execute("SELECT name FROM student_info WHERE roll = %s", (roll_no,))
+#     student_name=cur1.fetchone()[0]
+#     print(f"student name is {student_name}----------------------------------------------------------------")
+#     insert_query = """
+#             INSERT INTO enrolled (roll_no, course_name, course_id)
+#             VALUES (%s, %s, %s)
+#         """
+#     cur1.execute(insert_query, (roll_no, course_name, n))
+#     conn1.commit()
+#     cur1.close()
+#     conn1.close()
+#     #------connection for classrooms
+#     conn2 = pymysql.connect(
+#             host="classiq.mysql.pythonanywhere-services.com",
+#             user="classiq",
+#             password="pythonanywhereman.com",
+#             database="classiq$classrooms"
+#         )
+#     cur2 = conn2.cursor()
+#     # insert new record
+#     try:
+#         insert_query = f"""
+#             INSERT INTO classroom{n} (roll_no, student_name, original, total, current, is_master)
+#             VALUES (%s, %s, %s, %s, %s, %s)
+#         """
+#         cur2.execute(insert_query, (roll_no, student_name, None, 0, 0, False))
+#         conn2.commit()  # don’t forget to commit the insert
+#     except Exception as e:
+#         print(f"Error inserting into classroom{n}: {e}------------------------------------------------------------")
+#         conn2.rollback()
+
+#     # Check how many rows are in the table
+#     sql_count = f"SELECT COUNT(*) AS cnt FROM classroom{n}"
+#     cur2.execute(sql_count)
+#     count_result = cur2.fetchone()
+#     print(f"{count_result}----------------------------")
+#     # If only 1 row exists, set is_master = TRUE for that row
+#     try:
+#         if count_result[0] == 1:
+#             sql_update_master = f"UPDATE classroom{n} SET is_master = TRUE LIMIT 1"
+#             cur2.execute(sql_update_master)
+#         conn2.commit()
+#     except Exception as e:
+#         print(f"Error while setting master row in classroom{n}: {e}")
+#         conn2.rollback()
+
+#     cur2.close()
+#     conn2.close()
+#     return redirect(url_for('student_dashboard'))
+
+# @app.route("/attendance/<int:course_id>")
+# def attendance(course_id):
+#     table_name = f"classroom{course_id}"
+
+#     try:
+#         conn = get_connection_classrooms()
+#         cur = conn.cursor(pymysql.cursors.DictCursor)
+
+#         # total from the master row
+#         cur.execute(f"SELECT `total` FROM `{table_name}` WHERE `is_master`=1 LIMIT 1;")
+#         row = cur.fetchone()
+#         total = row["total"] if row and row.get("total") is not None else 0
+#         # list of students: roll_no + current (ALL rows, including master row)
+#         cur.execute(f"SELECT `roll_no`, `current` FROM `{table_name}`;")
+#         attendance_data = cur.fetchall()  # [{roll_no:..., current:...}, ...]
+#         print(attendance_data)
+
+
+#     except Exception as e:
+#         # Optional: log the error for debugging
+#         app.logger.exception("Error loading attendance for %s", table_name)
+#         abort(500, description=str(e))
+#     finally:
+#         try:
+#             conn.close()
+#         except Exception:
+#             pass
+
+#     return render_template(
+#         "attendance.html",
+#         total=total,
+#         attendance=attendance_data,
+#         table_name=table_name,
+#         classroom_no=course_id
+#     )
+
+
+# @app.route('/take_attendance/<int:n>')
+# def take_attendance(n):
+#     table_name = f"classroom{n}"
+#     today_col = datetime.now().strftime("%d.%m.%y")
+
+#     img_dir = os.path.join(app.static_folder, "images")
+#     os.makedirs(img_dir, exist_ok=True)
+
+#     try:
+#         connection = pymysql.connect(
+#             host="classiq.mysql.pythonanywhere-services.com",
+#             user="classiq",
+#             password="pythonanywhereman.com",
+#             database="classiq$classrooms",
+#             cursorclass=pymysql.cursors.DictCursor
+#         )
+#         with connection.cursor() as cursor:
+#             # Check / create today's column
+#             cursor.execute(f"SHOW COLUMNS FROM {table_name} LIKE %s", (today_col,))
+#             if not cursor.fetchone():
+#                 cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN `{today_col}` VARCHAR(255)")
+#                 connection.commit()
+
+#             # --- generate exactly 4 hex codes, each 5 digits ---
+#             codes = [''.join(random.choices('0123456789abcdef', k=5)) for _ in range(4)]
+
+#             # Save original codes to "original" column of first row (comma-separated, no spaces)
+#             codes_str = ",".join(codes)
+#             cursor.execute(
+#                 f"UPDATE {table_name} SET original=%s, total=total+1 WHERE is_master = TRUE LIMIT 1",
+#                 (codes_str,)
+#             )
+#             connection.commit()
+
+#             # Create QR images and replace list entries with filenames (same-index replacement)
+#             for i, code in enumerate(codes):
+#                 img = qrcode.make(code)
+#                 fname = f"{code}_{''.join(random.choices(string.ascii_lowercase+string.digits, k=6))}.png"
+#                 img.save(os.path.join(img_dir, fname))
+#                 codes[i] = fname  # replace code with filename in the SAME list
+
+#     except Exception as e:
+#         return f"Error: {e}"
+#     finally:
+#         if 'connection' in locals():
+#             connection.close()
+
+#     # 'codes' now holds the filenames; pass to template
+#     return render_template("take_attendance.html", filenames=codes, table_name=table_name, today_col=today_col,course_id=n)
+
+# @app.route('/delete', methods=['POST'])
+# def delete_original_codes():
+#     print("Delete route triggered")  # Debug
+#     try:
+#         data = request.get_json()
+#         print("Received data:", data)  # Debug
+#         course_id = data.get('course_id')
+#         print("Course ID:", course_id)  # Debug
+
+#         if not course_id:
+#             return jsonify({'success': False, 'error': 'Course ID not provided'}), 400
+
+#         table_name = f"classroom{course_id}"
+#         print("Resolved table name:", table_name)
+
+#         connection = pymysql.connect(
+#             host="classiq.mysql.pythonanywhere-services.com",
+#             user="classiq",
+#             password="pythonanywhereman.com",
+#             database="classiq$classrooms",
+#             cursorclass=pymysql.cursors.DictCursor
+#         )
+
+#         with connection:
+#             with connection.cursor() as cursor:
+#                 query = f"UPDATE {table_name} SET original = NULL WHERE is_master = 1 LIMIT 1"
+#                 print("Running query:", query)
+#                 cursor.execute(query)
+#                 rows_affected = cursor.rowcount
+#                 print("Rows affected:", rows_affected)
+
+#                 connection.commit()
+
+#                 if rows_affected > 0:
+#                     return jsonify({
+#                         'success': True,
+#                         'message': f'Successfully cleared original codes for {table_name}',
+#                         'rows_affected': rows_affected
+#                     })
+#                 else:
+#                     return jsonify({
+#                         'success': False,
+#                         'message': f'No master row found in {table_name}'
+#                     })
+
+#     except Exception as e:
+#         print("Error:", str(e))
+#         return jsonify({'success': False, 'error': str(e)}), 500
+
+# @app.route('/login_faculty', methods=['POST', 'GET'])
+# def login_faculty():
+#     return render_template('login_faculty2.html')
+
+# @app.route('/login_facultyy', methods=['POST'])
+# def login_facultyy():
+#     print("This is facultyy")
+#     data = request.get_json()
+#     email = data.get('email')
+#     print(email)
+#     password = data.get('password')
+#     print(password)
+#     user = User.query.filter_by(email=email).first()
+#     if user and check_password_hash(user.password, password):
+#         print("entered if")
+#         session["user_id"] = user.id
+#         print(f"session user_id: {session.get('user_id')}")
+#         session["email"] = user.email
+#         return jsonify({"success": True, "message": "Login successful"})
+#     else:
+#         print("entered else")
+#         return jsonify({"success": False, "message": "Invalid email or password"}), 401
 
 
 @app.route('/')
@@ -927,54 +1042,54 @@ def register():
 
 
 
-@app.route('/register_student', methods=['POST'])
-def register_student():
-    data = request.json
-    name = data.get('studentName')
-    roll = data.get('rollNumber')
-    dept = data.get('department')
-    email = data.get('collegeEmail')
-    password = data.get('password')
-    phone = data.get('phoneNumber')   # not in table, will be ignored unless added
+# @app.route('/register_student', methods=['POST'])
+# def register_student():
+#     data = request.json
+#     name = data.get('studentName')
+#     roll = data.get('rollNumber')
+#     dept = data.get('department')
+#     email = data.get('collegeEmail')
+#     password = data.get('password')
+#     phone = data.get('phoneNumber')   # not in table, will be ignored unless added
 
-    # Check if student already exists (by email or roll)
-    existing_student = StudentInfo.query.filter(
-        (StudentInfo.college_email == email) | (StudentInfo.roll == roll)
-    ).first()
+#     # Check if student already exists (by email or roll)
+#     existing_student = StudentInfo.query.filter(
+#         (StudentInfo.college_email == email) | (StudentInfo.roll == roll)
+#     ).first()
 
-    if existing_student:
-        return jsonify({'message': 'Student already exists. Please log in.'}), 400
+#     if existing_student:
+#         return jsonify({'message': 'Student already exists. Please log in.'}), 400
 
-    # Hash password
-    hashed_password = generate_password_hash(password)
+#     # Hash password
+#     hashed_password = generate_password_hash(password)
 
-    # Generate OTP
-    otp = random.randint(100000, 999999)
-    otp_store[email] = {
-        'name': name,
-        'roll': roll,
-        'dept': dept,
-        'password': hashed_password,
-        'otp': otp
-    }
+#     # Generate OTP
+#     otp = random.randint(100000, 999999)
+#     otp_store[email] = {
+#         'name': name,
+#         'roll': roll,
+#         'dept': dept,
+#         'password': hashed_password,
+#         'otp': otp
+#     }
 
 
-    # Simulate sending OTP (replace with real email service later)
-    print(f"OTP for {email}: {otp}")
-    msg = Message(
-        subject="OTP for ClassIQ",
-        sender=("ClassIQ Support", app.config['MAIL_USERNAME']),
-        recipients=[email]
-    )
-    msg.body = f"{otp} is your OTP for ClassIQ student account creation. Do not share with anyone."
+#     # Simulate sending OTP (replace with real email service later)
+#     print(f"OTP for {email}: {otp}")
+#     msg = Message(
+#         subject="OTP for ClassIQ",
+#         sender=("ClassIQ Support", app.config['MAIL_USERNAME']),
+#         recipients=[email]
+#     )
+#     msg.body = f"{otp} is your OTP for ClassIQ student account creation. Do not share with anyone."
 
-    try:
-        mail.send(msg)
-        print("OTP sent to email!")
-    except Exception as e:
-        print(f"Error sending email {e}")
+#     try:
+#         mail.send(msg)
+#         print("OTP sent to email!")
+#     except Exception as e:
+#         print(f"Error sending email {e}")
 
-    return jsonify({'message': 'Registration successful. OTP sent to email.'}), 200
+#     return jsonify({'message': 'Registration successful. OTP sent to email.'}), 200
 
 
 
