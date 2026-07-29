@@ -293,15 +293,8 @@
 
     <div class="divider">or</div>
 
-    <button type="button" class="btn-google" id="google-btn">
-      <svg viewBox="0 0 48 48">
-        <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.4 29.3 35 24 35c-6.1 0-11-4.9-11-11s4.9-11 11-11c2.8 0 5.3 1 7.3 2.7l5.7-5.7C33.5 6.5 29 4.5 24 4.5 13.2 4.5 4.5 13.2 4.5 24S13.2 43.5 24 43.5 43.5 34.8 43.5 24c0-1.2-.1-2.4-.4-3.5z"/>
-        <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 16 18.9 13 24 13c2.8 0 5.3 1 7.3 2.7l5.7-5.7C33.5 6.5 29 4.5 24 4.5c-7.7 0-14.4 4.4-17.7 10.2z"/>
-        <path fill="#4CAF50" d="M24 43.5c5 0 9.5-1.9 12.9-5.1l-6-4.9C29.1 35.4 26.7 36 24 36c-5.3 0-9.6-2.6-11.4-6.9l-6.6 5.1C9.6 39 16.3 43.5 24 43.5z"/>
-        <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.5l6 4.9C39.7 36.4 43.5 30.8 43.5 24c0-1.2-.1-2.4-.4-3.5z"/>
-      </svg>
-      Continue with Google
-    </button>
+    <!-- Empty container. Google will automatically inject its own standard button here -->
+    <div id="google-btn-container" style="display: flex; justify-content: center; width: 100%;"></div>
 
     <p class="switch">Already have an account? <a href="/login">Log in</a></p>
   </div>
@@ -333,6 +326,9 @@
     <p class="switch">Already verified? <a href="/login">Log in</a></p>
   </div>
 </div>
+
+<!-- Load Google Identity Services with onload callback -->
+<script src="https://accounts.google.com/gsi/client" async defer onload="initGoogle()"></script>
 
 <script>
   function showToast(msg, type){
@@ -368,7 +364,6 @@
     const password = document.getElementById('password');
     const btn = document.getElementById('submit-btn');
 
-    // Validation
     let valid = true;
     [firstName, email, password].forEach(f => {
       if (!f.value.trim()){
@@ -389,15 +384,14 @@
     btn.textContent = 'Creating account…';
     btn.disabled = true;
 
-    // Send registration data to backend endpoint
     fetch('/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        firstName: firstName.value.trim(), 
+      body: JSON.stringify({
+        firstName: firstName.value.trim(),
         lastName: lastName.value.trim(),
-        email: email.value.trim(), 
-        password: password.value.trim() 
+        email: email.value.trim(),
+        password: password.value.trim()
       })
     })
     .then(response => response.json())
@@ -407,13 +401,11 @@
 
       if (data.message) {
         showToast(data.message, 'success');
-        
-        // Show verification step
+
         document.getElementById('signup-step').classList.remove('active');
         document.getElementById('verification-step').classList.add('active');
         document.getElementById('email-display').textContent = email.value.trim();
 
-        // Focus on first OTP input box
         document.querySelector('.otp-digit').focus();
       }
     })
@@ -489,8 +481,7 @@
     .then(data => {
       if (data.message) {
         showToast(data.message, 'success');
-        
-        // Reset OTP inputs
+
         const otpInputs = document.querySelectorAll('.otp-digit');
         otpInputs.forEach(input => input.value = '');
         otpInputs[0].focus();
@@ -502,9 +493,64 @@
     });
   }
 
-  document.getElementById('google-btn').addEventListener('click', () => {
-    showToast('Redirecting to Google…');
-  });
+  // Initialize Google Auth
+  function initGoogle() {
+    google.accounts.id.initialize({
+      client_id: "593311499357-ehphsm15aei4bvlvtj1443f35o2opopf.apps.googleusercontent.com",
+      callback: handleGoogleResponse
+    });
+
+    const googleBtnContainer = document.getElementById('google-btn-container');
+    if (googleBtnContainer) {
+      google.accounts.id.renderButton(
+        googleBtnContainer,
+        {
+          theme: 'outline',
+          size: 'large',
+          width: googleBtnContainer.offsetWidth
+        }
+      );
+    }
+  }
+
+  async function handleGoogleResponse(response) {
+    const id_token = response.credential;
+
+    // Show an initial toast so the user knows something is happening
+    showToast('Connecting securely...', '');
+
+    try {
+    const res = await fetch('/google-login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id_token: id_token })
+    });
+
+    // Catch backend crashes (500 errors) before trying to parse JSON
+    if (!res.ok) {
+      console.error("Server returned an error status:", res.status);
+      showToast("Server error. Check your Flask terminal.", "error");
+      return;
+    }
+
+    const data = await res.json();
+
+    if (data.success) {
+      showToast('Logged in successfully!', 'success');
+      setTimeout(() => {
+        window.location.href = "/dashboard_user";
+      }, 1000);
+    } else {
+      showToast("Login failed: " + data.message, 'error');
+    }
+    } catch (error) {
+    console.error("Fetch Error:", error);
+    showToast("Network error during Google Sign-In.", 'error');
+    }
+  }
+
+
+
 
   // Handle backspace key on OTP digits to navigate back smoothly
   document.addEventListener('keydown', function (e) {
@@ -519,3 +565,8 @@
 
 </body>
 </html>
+
+
+
+
+

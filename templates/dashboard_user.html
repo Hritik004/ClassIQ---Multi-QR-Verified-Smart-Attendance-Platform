@@ -1,0 +1,734 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClassIQ — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --violet-1:#6a5ff0;
+    --violet-2:#8b5cf6;
+    --violet-3:#4f46e5;
+    --ink:#211f36;
+    --muted:#6b6885;
+    --card:#ffffff;
+    --hair:rgba(33,31,54,0.08);
+    --mint:#00c896;
+    --amber:#f5a524;
+    --rose:#f0556a;
+    --font-display:'Fraunces', serif;
+    --font-body:'Inter', sans-serif;
+    --font-mono:'JetBrains Mono', monospace;
+    --sidebar-w:264px;
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+
+  body{
+    font-family:var(--font-body);
+    color:var(--ink);
+    background:
+      radial-gradient(1100px 600px at 90% -10%, rgba(139,92,246,0.12), transparent),
+      radial-gradient(900px 500px at -10% 30%, rgba(106,95,240,0.10), transparent),
+      #f7f6fb;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit;text-decoration:none;}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
+  input,select{font-family:inherit;}
+
+  :focus-visible{outline:2px solid var(--violet-1);outline-offset:3px;}
+
+  /* ---------------- shell ---------------- */
+  .shell{display:grid;grid-template-columns:var(--sidebar-w) 1fr;min-height:100vh;}
+
+  /* ---------------- sidebar ---------------- */
+  .sidebar{
+    background:rgba(255,255,255,0.7);
+    backdrop-filter:blur(12px);
+    border-right:1px solid var(--hair);
+    display:flex;flex-direction:column;
+    padding:24px 18px;
+    position:sticky;top:0;height:100vh;
+  }
+  .logo{
+    font-family:var(--font-display);font-weight:600;font-size:20px;
+    display:flex;align-items:center;gap:9px;letter-spacing:-0.01em;
+    padding:6px 10px 26px;
+  }
+  .logo .dot{
+    width:9px;height:9px;border-radius:2px;
+    background:linear-gradient(135deg,var(--violet-1),var(--mint));
+    flex-shrink:0;
+  }
+
+  .nav-group{margin-bottom:22px;}
+  .nav-label{
+    font-family:var(--font-mono);font-size:10.5px;color:var(--muted);
+    text-transform:uppercase;letter-spacing:0.09em;
+    padding:0 10px;margin-bottom:8px;display:block;
+  }
+  .nav-item{
+    display:flex;align-items:center;gap:12px;
+    padding:10px 10px;border-radius:12px;margin-bottom:2px;
+    font-size:14px;font-weight:500;color:var(--muted);
+    transition:background .15s ease, color .15s ease;
+    width:100%;text-align:left;
+  }
+  .nav-item:hover{background:rgba(106,95,240,0.07);color:var(--ink);}
+  .nav-item.active{
+    background:linear-gradient(135deg, rgba(106,95,240,0.12), rgba(139,92,246,0.08));
+    color:var(--violet-3);font-weight:600;
+  }
+  .nav-item .ic{
+    width:26px;height:26px;border-radius:8px;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--font-mono);font-size:11px;font-weight:600;
+    background:rgba(33,31,54,0.06);color:var(--muted);
+  }
+  .nav-item.active .ic{
+    background:linear-gradient(135deg,var(--violet-1),var(--violet-3));color:#fff;
+  }
+  .nav-item .count{
+    margin-left:auto;font-family:var(--font-mono);font-size:11px;color:var(--muted);
+    background:rgba(33,31,54,0.05);padding:2px 7px;border-radius:100px;
+  }
+  .nav-item.active .count{color:var(--violet-3);background:rgba(106,95,240,0.12);}
+
+  .sidebar-bottom{margin-top:auto;}
+  .role-toggle{
+    display:flex;background:rgba(33,31,54,0.05);border-radius:12px;padding:3px;margin-bottom:14px;
+  }
+  .role-toggle button{
+    flex:1;text-align:center;padding:8px 0;border-radius:9px;font-size:12.5px;font-weight:600;color:var(--muted);
+    transition:background .15s ease, color .15s ease;
+  }
+  .role-toggle button.active{background:#fff;color:var(--violet-3);box-shadow:0 4px 12px rgba(76,63,180,0.1);}
+
+  .profile-card{
+    display:flex;align-items:center;gap:10px;padding:10px;border-radius:14px;
+    border:1px solid var(--hair);background:var(--card);
+  }
+  .avatar{
+    width:36px;height:36px;border-radius:10px;flex-shrink:0;
+    background:linear-gradient(135deg,var(--violet-1),var(--violet-3));
+    color:#fff;display:flex;align-items:center;justify-content:center;
+    font-family:var(--font-display);font-weight:600;font-size:14px;
+  }
+  .profile-meta{min-width:0;}
+  .profile-meta .name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .profile-meta .sub{font-size:11.5px;color:var(--muted);}
+  .profile-card .logout{margin-left:auto;font-size:15px;color:var(--muted);}
+  .profile-card .logout:hover{color:var(--rose);}
+
+  /* ---------------- main ---------------- */
+  .main{padding:26px 36px 60px;max-width:1000px;}
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;margin-bottom:30px;gap:20px;
+  }
+  .topbar h1{font-family:var(--font-display);font-size:1.7rem;font-weight:600;letter-spacing:-0.01em;}
+  .topbar .search{
+    display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--hair);
+    border-radius:100px;padding:9px 16px;font-size:13px;color:var(--muted);width:230px;
+  }
+  .topbar .search input{border:none;outline:none;background:none;font-size:13px;width:100%;color:var(--ink);}
+
+  .view{display:none;}
+  .view.active{display:block;}
+
+  /* ---------------- home ---------------- */
+  .greet-block{margin-bottom:30px;}
+  .greet-block .tag{
+    font-family:var(--font-mono);font-size:12px;color:var(--violet-3);
+    text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;display:block;
+  }
+  .greet-block h2{font-family:var(--font-display);font-size:1.9rem;font-weight:600;letter-spacing:-0.01em;margin-bottom:8px;}
+  .greet-block p{color:var(--muted);font-size:0.98rem;max-width:520px;}
+
+  .action-row{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:32px;}
+  .action-card{
+    background:var(--card);border:1px solid var(--hair);border-radius:18px;padding:24px;
+    box-shadow:0 12px 30px rgba(76,63,180,0.06);
+    display:flex;flex-direction:column;gap:14px;
+    transition:transform .18s ease, box-shadow .18s ease;
+  }
+  .action-card:hover{transform:translateY(-2px);box-shadow:0 18px 40px rgba(76,63,180,0.1);}
+  .action-card .ic-big{
+    width:44px;height:44px;border-radius:12px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--font-mono);font-size:15px;font-weight:600;
+  }
+  .action-card.create .ic-big{background:linear-gradient(135deg,var(--violet-1),var(--violet-3));color:#fff;}
+  .action-card.join .ic-big{background:linear-gradient(135deg,var(--mint),#00a67e);color:#fff;}
+  .action-card h3{font-family:var(--font-display);font-size:1.15rem;font-weight:600;}
+  .action-card p{color:var(--muted);font-size:0.88rem;flex-grow:1;}
+  .action-card .go{
+    font-size:13px;font-weight:600;color:var(--violet-3);display:inline-flex;align-items:center;gap:6px;
+    align-self:flex-start;
+  }
+
+  .stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:32px;}
+  .stat-card{
+    background:var(--card);border:1px solid var(--hair);border-radius:16px;padding:20px;
+  }
+  .stat-card .n{font-family:var(--font-display);font-size:1.7rem;font-weight:600;}
+  .stat-card .l{color:var(--muted);font-size:0.82rem;margin-top:4px;}
+  .stat-card .l .up{color:var(--mint);font-weight:600;}
+
+  .activity-list{background:var(--card);border:1px solid var(--hair);border-radius:16px;overflow:hidden;}
+  .activity-row{
+    display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid var(--hair);font-size:13.5px;
+  }
+  .activity-row:last-child{border-bottom:none;}
+  .activity-row .dot2{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+  .activity-row .dot2.mint{background:var(--mint);}
+  .activity-row .dot2.violet{background:var(--violet-1);}
+  .activity-row .dot2.amber{background:var(--amber);}
+  .activity-row .t{color:var(--muted);margin-left:auto;font-family:var(--font-mono);font-size:11.5px;}
+
+  /* ---------------- class grids ---------------- */
+  .section-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+  .section-top h2{font-family:var(--font-display);font-size:1.5rem;font-weight:600;}
+  .section-top p{color:var(--muted);font-size:0.9rem;margin-top:4px;}
+  .btn-primary{
+    font-weight:600;font-size:13.5px;color:#fff;
+    background:linear-gradient(135deg,var(--violet-1),var(--violet-3));
+    padding:11px 20px;border-radius:100px;
+    display:inline-flex;align-items:center;gap:8px;
+    box-shadow:0 10px 22px rgba(106,95,240,0.26);
+    transition:transform .18s ease, box-shadow .18s ease;
+  }
+  .btn-primary:hover{transform:translateY(-1px);box-shadow:0 14px 28px rgba(106,95,240,0.34);}
+  .btn-ghost{
+    font-weight:600;font-size:13px;color:var(--violet-3);
+    border:1px solid rgba(106,95,240,0.25);padding:10px 18px;border-radius:100px;
+    background:rgba(106,95,240,0.05);
+  }
+
+  .class-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;margin-bottom:8px;}
+  .class-card{
+    background:var(--card);border:1px solid var(--hair);border-radius:18px;padding:22px;
+    box-shadow:0 12px 30px rgba(76,63,180,0.06);
+  }
+  .class-card .top-row{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;}
+  .class-card .swatch{
+    width:38px;height:38px;border-radius:11px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--font-mono);font-weight:600;font-size:13px;color:#fff;
+  }
+  .class-card h4{font-family:var(--font-display);font-size:1.08rem;font-weight:600;margin-bottom:2px;}
+  .class-card .meta{font-size:12.5px;color:var(--muted);}
+  .class-card .code{
+    font-family:var(--font-mono);font-size:11.5px;color:var(--violet-3);
+    background:rgba(106,95,240,0.08);padding:3px 9px;border-radius:100px;
+  }
+  .badge-live{
+    font-family:var(--font-mono);font-size:10.5px;color:var(--mint);
+    display:inline-flex;align-items:center;gap:5px;
+  }
+  .badge-live .p{width:6px;height:6px;border-radius:50%;background:var(--mint);animation:blink 1.8s ease-in-out infinite;}
+  @keyframes blink{0%,100%{opacity:1;}50%{opacity:0.25;}}
+
+  .class-card .stats{display:flex;gap:18px;margin:14px 0;}
+  .class-card .stats div{font-size:12px;color:var(--muted);}
+  .class-card .stats b{display:block;color:var(--ink);font-family:var(--font-display);font-size:1.05rem;font-weight:600;}
+
+  .progress-bar{height:6px;border-radius:100px;background:rgba(33,31,54,0.07);overflow:hidden;margin:12px 0 6px;}
+  .progress-bar span{display:block;height:100%;background:linear-gradient(135deg,var(--violet-1),var(--mint));border-radius:100px;}
+  .progress-label{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);}
+
+  .class-card .row-actions{display:flex;gap:10px;margin-top:16px;}
+  .row-actions button{
+    flex:1;font-size:12.5px;font-weight:600;padding:9px 0;border-radius:10px;text-align:center;
+  }
+  .row-actions .primary{background:linear-gradient(135deg,var(--violet-1),var(--violet-3));color:#fff;}
+  .row-actions .secondary{background:rgba(33,31,54,0.05);color:var(--ink);}
+
+  .empty-state{
+    text-align:center;padding:50px 20px;background:var(--card);border:1px dashed var(--hair);border-radius:18px;color:var(--muted);
+    font-size:13.5px;
+  }
+  .empty-state .em-ic{font-family:var(--font-mono);font-size:22px;color:var(--violet-2);margin-bottom:10px;}
+
+  /* ---------------- settings ---------------- */
+  .settings-grid{display:grid;grid-template-columns:1fr;gap:20px;max-width:640px;}
+  .settings-card{background:var(--card);border:1px solid var(--hair);border-radius:18px;padding:26px;}
+  .settings-card h3{font-family:var(--font-display);font-size:1.12rem;font-weight:600;margin-bottom:4px;}
+  .settings-card .desc{color:var(--muted);font-size:12.5px;margin-bottom:18px;}
+  .field{margin-bottom:16px;}
+  .field:last-child{margin-bottom:0;}
+  .field label{font-size:12.5px;font-weight:600;color:var(--ink);display:block;margin-bottom:7px;}
+  .field input,.field select{
+    width:100%;padding:11px 14px;border-radius:10px;border:1px solid var(--hair);
+    font-size:13.5px;background:#fbfaff;color:var(--ink);outline:none;
+    transition:border-color .15s ease;
+  }
+  .field input:focus,.field select:focus{border-color:var(--violet-1);}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .settings-card .save-row{display:flex;justify-content:flex-end;margin-top:18px;gap:10px;}
+
+  .avatar-row{display:flex;align-items:center;gap:16px;margin-bottom:18px;}
+  .avatar-row .avatar{width:56px;height:56px;font-size:20px;border-radius:16px;}
+  .avatar-row .chg{font-size:12.5px;font-weight:600;color:var(--violet-3);}
+
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--hair);}
+  .toggle-row:last-child{border-bottom:none;}
+  .toggle-row .tt h5{font-size:13.5px;font-weight:600;}
+  .toggle-row .tt p{font-size:12px;color:var(--muted);margin-top:2px;}
+  .switch{width:40px;height:23px;border-radius:100px;background:rgba(33,31,54,0.14);position:relative;flex-shrink:0;transition:background .18s ease;}
+  .switch.on{background:linear-gradient(135deg,var(--violet-1),var(--violet-3));}
+  .switch .knob{position:absolute;top:2.5px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .18s ease;box-shadow:0 2px 6px rgba(0,0,0,0.2);}
+  .switch.on .knob{left:19px;}
+
+  .danger-card{border-color:rgba(240,85,106,0.25);background:rgba(240,85,106,0.03);}
+  .danger-card h3{color:var(--rose);}
+  .btn-danger{
+    font-weight:600;font-size:13px;color:var(--rose);border:1px solid rgba(240,85,106,0.35);
+    padding:10px 18px;border-radius:100px;background:rgba(240,85,106,0.06);
+  }
+
+  .toast{
+    position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--ink);color:#fff;padding:13px 22px;border-radius:100px;font-size:13px;font-weight:500;
+    opacity:0;pointer-events:none;transition:opacity .25s ease, transform .25s ease;
+    display:flex;align-items:center;gap:9px;z-index:200;box-shadow:0 20px 40px rgba(0,0,0,0.25);
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto;}
+  .toast .dotok{width:7px;height:7px;border-radius:50%;background:var(--mint);}
+
+  /* ---------------- modal ---------------- */
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(33,31,54,0.45);backdrop-filter:blur(3px);
+    display:none;align-items:center;justify-content:center;z-index:100;padding:20px;
+  }
+  .modal-overlay.show{display:flex;}
+  .modal{
+    background:var(--card);border-radius:20px;padding:28px;width:100%;max-width:420px;
+    box-shadow:0 30px 70px rgba(33,31,54,0.25);
+  }
+  .modal .m-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+  .modal h3{font-family:var(--font-display);font-size:1.25rem;font-weight:600;}
+  .modal .close{font-size:18px;color:var(--muted);}
+  .modal .m-sub{color:var(--muted);font-size:12.5px;margin-bottom:20px;}
+  .modal .m-actions{display:flex;gap:10px;margin-top:22px;}
+  .modal .m-actions button{flex:1;padding:12px 0;border-radius:11px;font-size:13.5px;font-weight:600;text-align:center;}
+  .modal .m-actions .cancel{background:rgba(33,31,54,0.05);color:var(--ink);}
+  .modal .m-actions .confirm{background:linear-gradient(135deg,var(--violet-1),var(--violet-3));color:#fff;}
+  .color-pick{display:flex;gap:8px;margin-top:6px;}
+  .color-pick span{width:26px;height:26px;border-radius:8px;cursor:pointer;border:2px solid transparent;}
+  .color-pick span.sel{border-color:var(--ink);}
+
+  @media (max-width:900px){
+    .shell{grid-template-columns:1fr;}
+    .sidebar{position:relative;height:auto;flex-direction:row;align-items:center;overflow-x:auto;padding:14px 16px;}
+    .sidebar .logo{padding:0 14px 0 0;}
+    .nav-group{display:flex;gap:4px;margin-bottom:0;}
+    .nav-label{display:none;}
+    .nav-item{white-space:nowrap;}
+    .sidebar-bottom{display:none;}
+    .main{padding:22px 18px 50px;}
+    .action-row,.stats-row,.class-grid,.field-row{grid-template-columns:1fr;}
+    .topbar{flex-wrap:wrap;}
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <!-- ---------------- SIDEBAR ---------------- -->
+  <aside class="sidebar">
+    <a href="#" class="logo"><span class="dot"></span>ClassIQ</a>
+
+    <div class="nav-group">
+      <span class="nav-label">Overview</span>
+      <button class="nav-item active" data-view="home">
+        <span class="ic">H</span> Home
+      </button>
+    </div>
+
+    <div class="nav-group">
+      <span class="nav-label">Classes</span>
+      <button class="nav-item" data-view="my-classes">
+        <span class="ic">MC</span> My Classes <span class="count" id="countMy">3</span>
+      </button>
+      <button class="nav-item" data-view="enrolled">
+        <span class="ic">EC</span> Enrolled Classes <span class="count" id="countEn">4</span>
+      </button>
+    </div>
+
+    <div class="nav-group">
+      <span class="nav-label">Account</span>
+      <button class="nav-item" data-view="settings">
+        <span class="ic">⚙</span> Settings
+      </button>
+    </div>
+
+    <div class="sidebar-bottom">
+      <div class="role-toggle">
+        <button class="active" id="roleFaculty">Faculty</button>
+        <button id="roleStudent">Student</button>
+      </div>
+      <div class="profile-card">
+        <div class="avatar">HK</div>
+        <div class="profile-meta">
+          <div class="name">Hritik</div>
+          <div class="sub">B.Tech · CSE (AI/ML)</div>
+        </div>
+        <a href="{{ url_for('logout') }}" class="logout" title="Log out">⏻</a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ---------------- MAIN ---------------- -->
+  <main class="main">
+
+    <!-- ===== HOME ===== -->
+    <section class="view active" id="view-home">
+      <div class="topbar">
+        <h1 id="pageTitle">Home</h1>
+        <div class="search"><span>⌕</span><input type="text" placeholder="Search classes, students…"></div>
+      </div>
+
+      <div class="greet-block">
+        <span class="tag">● session active · Wed, 29 Jul</span>
+        <h2 id="greeting">Good afternoon, Hritik</h2>
+        <p>Here's what's happening across your classes today. Start a session, check who's enrolled, or catch up on recent scans.</p>
+      </div>
+
+      <div class="action-row">
+        <div class="action-card create">
+          <div class="ic-big">+</div>
+          <h3>Create a class</h3>
+          <p>Set up a new class, get a join code for students, and start taking regenerating-QR attendance.</p>
+          <button class="go" onclick="openModal('createModal')">Create class →</button>
+        </div>
+        <div class="action-card join">
+          <div class="ic-big">→</div>
+          <h3>Join a class</h3>
+          <p>Enter a class code from your faculty to enroll and start marking your attendance.</p>
+          <button class="go" onclick="openModal('joinModal')">Join class →</button>
+        </div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card"><div class="n">3</div><div class="l">Classes created</div></div>
+        <div class="stat-card"><div class="n">4</div><div class="l">Classes enrolled</div></div>
+        <div class="stat-card"><div class="n">96%</div><div class="l"><span class="up">↑ 4%</span> avg attendance this week</div></div>
+      </div>
+
+      <div class="section-top" style="margin-bottom:14px;">
+        <div><h2 style="font-size:1.15rem;">Recent activity</h2></div>
+      </div>
+      <div class="activity-list">
+        <div class="activity-row"><span class="dot2 mint"></span> Session started for <b>&nbsp;DL Lab — Sec B</b><span class="t">10:02 AM</span></div>
+        <div class="activity-row"><span class="dot2 violet"></span> 41 students marked present in <b>&nbsp;Data Structures</b><span class="t">Yesterday</span></div>
+        <div class="activity-row"><span class="dot2 amber"></span> You joined <b>&nbsp;Combinatorics — MATH 3221</b><span class="t">2 days ago</span></div>
+        <div class="activity-row"><span class="dot2 mint"></span> New student enrolled via code <b>&nbsp;#48A2E1</b><span class="t">3 days ago</span></div>
+      </div>
+    </section>
+
+    <!-- ===== MY CLASSES ===== -->
+    <section class="view" id="view-my-classes">
+      <div class="topbar">
+        <h1>My Classes</h1>
+        <div class="search"><span>⌕</span><input type="text" placeholder="Search your classes…"></div>
+      </div>
+      <div class="section-top">
+        <div>
+          <h2>Classes you teach</h2>
+          <p>Start sessions and watch attendance come in live.</p>
+        </div>
+        <button class="btn-primary" onclick="openModal('createModal')">+ Create class</button>
+      </div>
+      <div class="class-grid" id="myClassesGrid"></div>
+    </section>
+
+    <!-- ===== ENROLLED CLASSES ===== -->
+    <section class="view" id="view-enrolled">
+      <div class="topbar">
+        <h1>Enrolled Classes</h1>
+        <div class="search"><span>⌕</span><input type="text" placeholder="Search enrolled classes…"></div>
+      </div>
+      <div class="section-top">
+        <div>
+          <h2>Classes you're in</h2>
+          <p>Your attendance record across every class you've joined.</p>
+        </div>
+        <button class="btn-primary" onclick="openModal('joinModal')">+ Join class</button>
+      </div>
+      <div class="class-grid" id="enrolledGrid"></div>
+    </section>
+
+    <!-- ===== SETTINGS ===== -->
+    <section class="view" id="view-settings">
+      <div class="topbar">
+        <h1>Settings</h1>
+      </div>
+
+      <div class="settings-grid">
+        <div class="settings-card">
+          <h3>Profile</h3>
+          <div class="desc">This is how you'll appear across ClassIQ.</div>
+          <div class="avatar-row">
+            <div class="avatar">HK</div>
+            <div><a href="#" class="chg">Change photo</a></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>First name</label><input type="text" value="Hritik"></div>
+            <div class="field"><label>Last name</label><input type="text" value=""></div>
+          </div>
+          <div class="save-row"><button class="btn-primary" onclick="showToast('Profile updated')">Save changes</button></div>
+        </div>
+
+        <div class="settings-card">
+          <h3>Change password</h3>
+          <div class="desc">Use at least 8 characters, with a number and a symbol.</div>
+          <div class="field"><label>Current password</label><input type="password" placeholder="••••••••"></div>
+          <div class="field-row">
+            <div class="field"><label>New password</label><input type="password" placeholder="••••••••"></div>
+            <div class="field"><label>Confirm new password</label><input type="password" placeholder="••••••••"></div>
+          </div>
+          <div class="save-row"><button class="btn-primary" onclick="showToast('Password updated')">Update password</button></div>
+        </div>
+
+        <div class="settings-card danger-card">
+          <h3>Danger zone</h3>
+          <div class="desc">These actions are permanent and can't be undone.</div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn-danger" onclick="showToast('Account deletion requires email confirmation')">Delete account</button>
+            <button class="btn-ghost" onclick="showToast('Signed out of all other devices')">Log out of all devices</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ---------------- CREATE CLASS MODAL ---------------- -->
+<div class="modal-overlay" id="createModal">
+  <div class="modal">
+    <div class="m-head"><h3>Create a class</h3><button class="close" onclick="closeModal('createModal')">✕</button></div>
+    <div class="m-sub">Students will join using the code generated after creation.</div>
+    <div class="field"><label>Class name</label><input type="text" id="newClassName" placeholder="e.g. Data Structures — Sec A"></div>
+    <div class="field"><label>Subject / course code</label><input type="text" id="newClassSubject" placeholder="e.g. CS301"></div>
+    <div class="field">
+      <label>Card color</label>
+      <div class="color-pick" id="colorPick">
+        <span style="background:linear-gradient(135deg,#6a5ff0,#4f46e5);" class="sel" data-c="linear-gradient(135deg,#6a5ff0,#4f46e5)"></span>
+        <span style="background:linear-gradient(135deg,#00c896,#00a67e);" data-c="linear-gradient(135deg,#00c896,#00a67e)"></span>
+        <span style="background:linear-gradient(135deg,#f5a524,#e08e0b);" data-c="linear-gradient(135deg,#f5a524,#e08e0b)"></span>
+        <span style="background:linear-gradient(135deg,#f0556a,#d63d52);" data-c="linear-gradient(135deg,#f0556a,#d63d52)"></span>
+      </div>
+    </div>
+    <div class="m-actions">
+      <button class="cancel" onclick="closeModal('createModal')">Cancel</button>
+      <button class="confirm" onclick="createClass()">Create class</button>
+    </div>
+  </div>
+</div>
+
+<!-- ---------------- JOIN CLASS MODAL ---------------- -->
+<div class="modal-overlay" id="joinModal">
+  <div class="modal">
+    <div class="m-head"><h3>Join a class</h3><button class="close" onclick="closeModal('joinModal')">✕</button></div>
+    <div class="m-sub">Ask your faculty for the class code, then enter it below.</div>
+    <div class="field"><label>Class code</label><input type="text" id="joinCode" placeholder="e.g. 48A2E1" style="font-family:var(--font-mono); letter-spacing:0.08em;"></div>
+    <div class="m-actions">
+      <button class="cancel" onclick="closeModal('joinModal')">Cancel</button>
+      <button class="confirm" onclick="joinClass()">Join class</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span class="dotok"></span><span id="toastMsg">Done</span></div>
+
+<script>
+  // ---------------- nav switching ----------------
+  const titles = {
+    'home':'Home', 'my-classes':'My Classes', 'enrolled':'Enrolled Classes', 'settings':'Settings'
+  };
+  document.querySelectorAll('.nav-item[data-view]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.nav-item[data-view]').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      const view = btn.dataset.view;
+      document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+      document.getElementById('view-'+view).classList.add('active');
+    });
+  });
+
+  // ---------------- role toggle (cosmetic) ----------------
+  const roleFaculty = document.getElementById('roleFaculty');
+  const roleStudent = document.getElementById('roleStudent');
+  roleFaculty.addEventListener('click', ()=>{ roleFaculty.classList.add('active'); roleStudent.classList.remove('active'); });
+  roleStudent.addEventListener('click', ()=>{ roleStudent.classList.add('active'); roleFaculty.classList.remove('active'); });
+
+  // ---------------- data ----------------
+  let myClasses = [
+    {name:'Data Structures — Sec A', subject:'CS301', students:47, code:'7QX2K9', live:true, present:41, color:'linear-gradient(135deg,#6a5ff0,#4f46e5)'},
+    {name:'DL Lab — Sec B', subject:'CS452', students:32, code:'48A2E1', live:false, present:0, color:'linear-gradient(135deg,#00c896,#00a67e)'},
+    {name:'AI Fundamentals', subject:'CS410', students:58, code:'PL9F3R', live:false, present:0, color:'linear-gradient(135deg,#f5a524,#e08e0b)'},
+  ];
+
+  let enrolled = [
+    {name:'Combinatorics — MATH 3221', instructor:'Prof. R. Sen', attendance:96, next:'Tomorrow, 9:00 AM'},
+    {name:'Computer Networks', instructor:'Prof. A. Ghosh', attendance:88, next:'Today, 2:00 PM'},
+    {name:'Operating Systems', instructor:'Prof. S. Roy', attendance:74, next:'Fri, 11:00 AM'},
+    {name:'Technical Communication', instructor:'Prof. M. Dutta', attendance:100, next:'Mon, 10:00 AM'},
+  ];
+
+  function initials(str){
+    return str.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+  }
+
+  function renderMyClasses(){
+    const grid = document.getElementById('myClassesGrid');
+    if(!myClasses.length){
+      grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">
+        <div class="em-ic">MC</div>
+        No classes yet — create one to generate your first regenerating QR code.
+      </div>`;
+      document.getElementById('countMy').textContent = 0;
+      return;
+    }
+    grid.innerHTML = myClasses.map(c=>`
+      <div class="class-card">
+        <div class="top-row">
+          <div class="swatch" style="background:${c.color}">${initials(c.name)}</div>
+          ${c.live ? `<span class="badge-live"><span class="p"></span>live</span>` : `<span class="code">#${c.code}</span>`}
+        </div>
+        <h4>${c.name}</h4>
+        <div class="meta">${c.subject} · ${c.students} students</div>
+        <div class="stats">
+          <div><b>${c.students}</b>enrolled</div>
+          <div><b>${c.live ? c.present : '—'}</b>present today</div>
+          <div><b>#${c.code}</b>join code</div>
+        </div>
+        <div class="row-actions">
+          <button class="primary" onclick="toggleLive('${c.code}')">${c.live ? 'End session' : 'Start session'}</button>
+          <button class="secondary" onclick="showToast('Opening roster for ${c.name}')">View roster</button>
+        </div>
+      </div>
+    `).join('');
+    document.getElementById('countMy').textContent = myClasses.length;
+  }
+
+  function renderEnrolled(){
+    const grid = document.getElementById('enrolledGrid');
+    if(!enrolled.length){
+      grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">
+        <div class="em-ic">EC</div>
+        You haven't joined any classes yet — enter a class code to get started.
+      </div>`;
+      document.getElementById('countEn').textContent = 0;
+      return;
+    }
+    grid.innerHTML = enrolled.map(c=>`
+      <div class="class-card">
+        <div class="top-row">
+          <div class="swatch" style="background:linear-gradient(135deg,#8b5cf6,#4f46e5)">${initials(c.name)}</div>
+          <span class="meta">${c.next}</span>
+        </div>
+        <h4>${c.name}</h4>
+        <div class="meta">${c.instructor}</div>
+        <div class="progress-bar"><span style="width:${c.attendance}%; background:${c.attendance<75 ? 'linear-gradient(135deg,#f5a524,#f0556a)' : 'linear-gradient(135deg,var(--violet-1),var(--mint))'}"></span></div>
+        <div class="progress-label"><span>${c.attendance}% attendance</span><span>${c.attendance<75 ? 'below threshold' : 'on track'}</span></div>
+        <div class="row-actions">
+          <button class="primary" onclick="showToast('Scan a live QR from ${c.name} to mark present')">Mark attendance</button>
+          <button class="secondary" onclick="showToast('Opening history for ${c.name}')">View history</button>
+        </div>
+      </div>
+    `).join('');
+    document.getElementById('countEn').textContent = enrolled.length;
+  }
+
+  function toggleLive(code){
+    const c = myClasses.find(x=>x.code===code);
+    c.live = !c.live;
+    if(c.live) c.present = Math.floor(c.students*0.6);
+    renderMyClasses();
+    showToast(c.live ? `Session started for ${c.name}` : `Session ended for ${c.name}`);
+  }
+
+  // ---------------- modals ----------------
+  function openModal(id){ document.getElementById(id).classList.add('show'); }
+  function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+  document.querySelectorAll('.modal-overlay').forEach(ov=>{
+    ov.addEventListener('click', e=>{ if(e.target===ov) ov.classList.remove('show'); });
+  });
+
+  let pickedColor = 'linear-gradient(135deg,#6a5ff0,#4f46e5)';
+  document.getElementById('colorPick').addEventListener('click', e=>{
+    if(e.target.tagName !== 'SPAN') return;
+    document.querySelectorAll('#colorPick span').forEach(s=>s.classList.remove('sel'));
+    e.target.classList.add('sel');
+    pickedColor = e.target.dataset.c;
+  });
+
+  function randomCode(){
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let s = '';
+    for(let i=0;i<6;i++) s += chars[Math.floor(Math.random()*chars.length)];
+    return s;
+  }
+
+  function createClass(){
+    const name = document.getElementById('newClassName').value.trim();
+    const subject = document.getElementById('newClassSubject').value.trim();
+    if(!name){ showToast('Give your class a name first'); return; }
+    myClasses.unshift({name, subject: subject || '—', students:0, code:randomCode(), live:false, present:0, color:pickedColor});
+    document.getElementById('newClassName').value = '';
+    document.getElementById('newClassSubject').value = '';
+    renderMyClasses();
+    closeModal('createModal');
+    document.querySelectorAll('.nav-item[data-view]').forEach(b=>b.classList.remove('active'));
+    document.querySelector('[data-view="my-classes"]').classList.add('active');
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.getElementById('view-my-classes').classList.add('active');
+    showToast('Class created — code #' + myClasses[0].code);
+  }
+
+  function joinClass(){
+    const code = document.getElementById('joinCode').value.trim();
+    if(!code){ showToast('Enter a class code first'); return; }
+    enrolled.unshift({name:'New Class ('+code.toUpperCase()+')', instructor:'Pending', attendance:100, next:'Awaiting first session'});
+    document.getElementById('joinCode').value = '';
+    renderEnrolled();
+    closeModal('joinModal');
+    document.querySelectorAll('.nav-item[data-view]').forEach(b=>b.classList.remove('active'));
+    document.querySelector('[data-view="enrolled"]').classList.add('active');
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.getElementById('view-enrolled').classList.add('active');
+    showToast('Joined class with code #' + code.toUpperCase());
+  }
+
+  // ---------------- toast ----------------
+  let toastTimer;
+  function showToast(msg){
+    const t = document.getElementById('toast');
+    document.getElementById('toastMsg').textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=>t.classList.remove('show'), 2600);
+  }
+
+  // ---------------- greeting by time ----------------
+  (function(){
+    const h = new Date().getHours();
+    const g = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+    document.getElementById('greeting').textContent = g + ', Hritik';
+  })();
+
+  renderMyClasses();
+  renderEnrolled();
+</script>
+
+</body>
+</html>

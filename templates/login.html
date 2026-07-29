@@ -142,25 +142,6 @@
     content:'';flex:1;height:1px;background:var(--hair);
   }
 
-  .btn-google{
-    width:100%;
-    padding:12px;
-    border:1.5px solid var(--hair);
-    border-radius:11px;
-    background:#fff;
-    font-size:14.5px;
-    font-weight:600;
-    color:var(--ink);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:10px;
-    cursor:pointer;
-    transition:border-color .2s ease, transform .2s ease, box-shadow .2s ease;
-  }
-  .btn-google:hover{border-color:#d5d2e8;transform:translateY(-1px);box-shadow:0 8px 20px rgba(33,31,54,0.06);}
-  .btn-google svg{width:18px;height:18px;}
-
   .switch{
     text-align:center;
     margin-top:26px;
@@ -212,18 +193,14 @@
 
   <div class="divider">or</div>
 
-  <button type="button" class="btn-google" id="google-btn">
-    <svg viewBox="0 0 48 48">
-      <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.4 29.3 35 24 35c-6.1 0-11-4.9-11-11s4.9-11 11-11c2.8 0 5.3 1 7.3 2.7l5.7-5.7C33.5 6.5 29 4.5 24 4.5 13.2 4.5 4.5 13.2 4.5 24S13.2 43.5 24 43.5 43.5 34.8 43.5 24c0-1.2-.1-2.4-.4-3.5z"/>
-      <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 16 18.9 13 24 13c2.8 0 5.3 1 7.3 2.7l5.7-5.7C33.5 6.5 29 4.5 24 4.5c-7.7 0-14.4 4.4-17.7 10.2z"/>
-      <path fill="#4CAF50" d="M24 43.5c5 0 9.5-1.9 12.9-5.1l-6-4.9C29.1 35.4 26.7 36 24 36c-5.3 0-9.6-2.6-11.4-6.9l-6.6 5.1C9.6 39 16.3 43.5 24 43.5z"/>
-      <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.5l6 4.9C39.7 36.4 43.5 30.8 43.5 24c0-1.2-.1-2.4-.4-3.5z"/>
-    </svg>
-    Continue with Google
-  </button>
+  <!-- Google Auth Container rendered dynamically by GSI -->
+  <div id="google-btn-container" style="display: flex; justify-content: center; width: 100%;"></div>
 
   <p class="switch">Don't have an account? <a href="/signup">Sign up</a></p>
 </div>
+
+<!-- Load Google Identity Services script -->
+<script src="https://accounts.google.com/gsi/client" async defer onload="initGoogle()"></script>
 
 <script>
   function showToast(msg, type){
@@ -251,9 +228,7 @@
     btn.textContent = 'Logging in…';
     btn.disabled = true;
 
-
     try {
-
         const response = await fetch('/login', {
             method: 'POST',
             headers: {
@@ -265,49 +240,86 @@
             })
         });
 
-
         const data = await response.json();
 
-
         if(response.ok && data.success){
-
             showToast('Login successful', 'success');
-
             setTimeout(()=>{
-                window.location.href='/dashboard';
+                window.location.href='/dashboard_user';
             },1000);
-
         }
         else{
-
             showToast(data.message || 'Invalid credentials','error');
-
         }
 
-
     } catch(error){
-
         showToast('Server error','error');
         console.log(error);
-
     }
     finally{
-
         btn.textContent='Log in';
         btn.disabled=false;
-
     }
-
-});
-
-  document.getElementById('google-btn').addEventListener('click', () => {
-    showToast('Redirecting to Google…');
   });
 
   document.getElementById('forgot').addEventListener('click', (e) => {
     e.preventDefault();
     showToast('Password reset link sent if the email exists.');
   });
+
+  // Initialize Google Auth
+  function initGoogle() {
+    google.accounts.id.initialize({
+      client_id: "593311499357-ehphsm15aei4bvlvtj1443f35o2opopf.apps.googleusercontent.com",
+      callback: handleGoogleResponse
+    });
+
+    const googleBtnContainer = document.getElementById('google-btn-container');
+    if (googleBtnContainer) {
+      google.accounts.id.renderButton(
+        googleBtnContainer,
+        {
+          theme: 'outline',
+          size: 'large',
+          width: googleBtnContainer.offsetWidth
+        }
+      );
+    }
+  }
+
+  async function handleGoogleResponse(response) {
+    const id_token = response.credential;
+
+    showToast('Connecting securely...', '');
+
+    try {
+      const res = await fetch('/google-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id_token: id_token })
+      });
+
+      if (!res.ok) {
+        console.error("Server returned an error status:", res.status);
+        showToast("Server error. Check your Flask terminal.", "error");
+        return;
+      }
+
+      const data = await res.json();
+
+      if (data.success) {
+        showToast('Logged in successfully!', 'success');
+        setTimeout(() => {
+          window.location.href = "/dashboard_user";
+        }, 1000);
+      } else {
+        showToast("Login failed: " + data.message, 'error');
+      }
+    } catch (error) {
+      console.error("Fetch Error:", error);
+      showToast("Network error during Google Sign-In.", 'error');
+    }
+  }
 </script>
 
 </body>

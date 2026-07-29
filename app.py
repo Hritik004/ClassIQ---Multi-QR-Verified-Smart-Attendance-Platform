@@ -1,4 +1,4 @@
-from flask import Flask, session, request, jsonify
+from flask import Flask, session, request, jsonify, flash
 from flask import render_template,  redirect, url_for, abort
 from flask_sqlalchemy import SQLAlchemy
 from flask_mail import Mail, Message
@@ -10,12 +10,22 @@ from datetime import datetime
 import pymysql
 from dotenv import load_dotenv
 import os
+from sqlalchemy import text
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
+
+
+
+
 
 load_dotenv()
 APP_SECRET_KEY = os.getenv("APP_SECRET_KEY")#21
 PYMYSQL_KEY = os.getenv("PYMYSQL_KEY")#23, 69
 EMAIL_ID = os.getenv("EMAIL_ID")#34
 EMAIL_KEY = os.getenv("EMAIL_KEY")#36
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+
+
 
 app = Flask(__name__)
 app.secret_key = APP_SECRET_KEY
@@ -192,13 +202,14 @@ def signup_faculty():
     return render_template('signup.html')
 
 
-# @app.route('/signup_student')
-# def signup_student():
-#     return render_template('signup_student.html')
-
 
 @app.route('/dashboard')
 def dashboard():
+    # If the user is already logged in, redirect them to their dashboard
+    if 'user_id' in session:
+        return redirect('/dashboard_user')
+
+    # Otherwise, show the normal public/landing dashboard page
     return render_template('dashboard.html')
 
 #from flask import render_template
@@ -213,6 +224,65 @@ def logout_student():
 @app.route('/login',methods=['GET'])
 def login_student():
     return render_template('login.html')
+
+
+
+@app.route('/dashboard_user')
+def dashboard_user():
+
+    if 'user_id' not in session:
+        return redirect('/login')
+
+    user = User.query.get(session['user_id'])
+
+    if not user:
+        session.clear()
+        return redirect('/login')
+
+    # Classes taught by this user
+    my_classes = db.session.execute(
+        text("""
+            SELECT
+                id,
+                name
+            FROM classrooms
+            WHERE faculty_id = :uid
+            ORDER BY name
+        """),
+        {
+            "uid": user.id
+        }
+    ).mappings().all()
+
+    # Classes where this user is enrolled
+    enrolled_classes = db.session.execute(
+        text("""
+            SELECT
+                c.id,
+                c.name,
+                u.first_name AS faculty_name,
+                u.last_name AS faculty_last_name
+            FROM classroom_students cs
+            JOIN classrooms c
+                ON cs.classroom_id = c.id
+            JOIN users u
+                ON c.faculty_id = u.id
+            WHERE cs.student_id = :uid
+            ORDER BY c.name
+        """),
+        {
+            "uid": user.id
+        }
+    ).mappings().all()
+
+    return render_template(
+        "dashboard_user.html",
+        user=user,
+        my_classes=my_classes,
+        enrolled_classes=enrolled_classes
+    )
+
+
 
 
 
@@ -279,113 +349,89 @@ def login():
 
 
 
-# API route to authenticate student login
-@app.route('/login_student_', methods=['POST'])
-def login_student_():
-    data = request.json
-    roll = data.get('rollNumber')
-    password = data.get('password')
-
-    if not roll or not password:
-        return jsonify({"success": False, "message": "Roll number and password required"}), 400
-
-    # Look up student in DB
-    student = StudentInfo.query.filter_by(roll=int(roll)).first()
-
-    if not student:
-        return jsonify({"success": False, "message": "Invalid roll number or password"}), 401
-
-    # Verify password
-    if not check_password_hash(student.password, password):
-        return jsonify({"success": False, "message": "Invalid roll number or password"}), 401
-
-    session['roll_no'] = student.roll
-
-    return jsonify({"success": True, "message": "Login successful"}), 200
 
 
-# @app.route('/save_qr_data', methods=['POST'])
-# def save_qr_data():
-#     data = request.json
-#     course_id = data.get("course_id")
-#     qr_codes = data.get("qr_codes")
+@app.route('/logout')
+def logout():
+    # Clear all data from the current user's session
+    session.clear()
+    # Optional: Send a success message to the login page
+    flash("You have been logged out successfully.", "success")
 
-#     if not course_id or not qr_codes:
-#         return jsonify({"success": False, "message": "Missing data"}), 400
-
-#     # Just render details.html with the scanned data (no DB storage)
-#     return render_template("details.html", course_id=course_id, qr_codes=qr_codes)
+    # Redirect to your login route (ensure your login function is named 'login')
+    return redirect(url_for('login_student'))
 
 
 
-# @app.route('/student/dashboard')
-# def student_dashboard():
-#     roll_no = session.get("roll_no")   # ✅ read roll_no from session
+# ==========================================
+# --- NEW: GOOGLE LOGIN ROUTE ADDED HERE ---
+# ==========================================
+@app.route('/google-login', methods=['POST'])
+def google_login():
+    data = request.get_json()
+    token = data.get('id_token')
 
-#     if not roll_no:
-#         return redirect(url_for("login_student"))  # ✅ must be function name, not HTML file
+    if not token:
+        return jsonify({"success": False, "message": "No token provided"}), 400
 
-#     connection = pymysql.connect(
-#         host='classiq.mysql.pythonanywhere-services.com',
-#         user='classiq',
-#         password='pythonanywhereman.com',
-#         database='classiq$accounts',
-#         cursorclass=pymysql.cursors.DictCursor
-#     )
-#     with connection.cursor() as cursor:
-#         sql = "SELECT course_id, course_name FROM enrolled WHERE roll_no = %s"
-#         cursor.execute(sql, (roll_no,))
-#         courses = cursor.fetchall()
-#     connection.close()
+    try:
+        # 1. Verify the Google Token
+        idinfo = id_token.verify_oauth2_token(
+            token,
+            google_requests.Request(),
+            GOOGLE_CLIENT_ID
+        )
 
-#     return render_template("student_courses.html", roll_no=roll_no, courses=courses)
+        # 2. Extract user info
+        google_id = idinfo['sub']
+        email = idinfo['email']
+        first_name = idinfo.get('given_name', 'Unknown')
+        last_name = idinfo.get('family_name', '')
 
-# @app.route('/student/dashboard')
-# def student_dashboard():
-#     roll_no = session.get("roll_no")   # ✅ read roll_no from session
+        # 3. Database Check
+        user = User.query.filter_by(email=email).first()
 
-#     if not roll_no:
-#         return redirect(url_for("login_student"))  # ✅ must be function name, not HTML file
+        if not user:
+            user = User(
+                first_name=first_name,
+                last_name=last_name,
+                email=email,
+                auth_provider='google',
+                provider_user_id=google_id
+            )
+            db.session.add(user)
+            db.session.commit()
+        elif user.auth_provider == 'local':
+            user.auth_provider = 'google'
+            user.provider_user_id = google_id
+            db.session.commit()
+        else:
+            user.first_name = first_name
+            user.last_name = last_name
+            db.session.commit()
 
-#     # ---- Step 1: Get courses from accounts DB ----
-#     connection = pymysql.connect(
-#         host='classiq.mysql.pythonanywhere-services.com',
-#         user='classiq',
-#         password='pythonanywhereman.com',
-#         database='classiq$accounts',
-#         cursorclass=pymysql.cursors.DictCursor
-#     )
-#     with connection.cursor() as cursor:
-#         sql = "SELECT course_id, course_name FROM enrolled WHERE roll_no = %s"
-#         cursor.execute(sql, (roll_no,))
-#         courses = cursor.fetchall()
-#     connection.close()
+        # 4. Create Session
+        session['user_id'] = user.id
+        session['email'] = user.email
+        session['name'] = user.first_name
 
-#     # ---- Step 2: For each course, get attendance from classrooms DB ----
-#     connection = pymysql.connect(
-#         host='classiq.mysql.pythonanywhere-services.com',
-#         user='classiq',
-#         password='pythonanywhereman.com',
-#         database='classiq$classrooms',
-#         cursorclass=pymysql.cursors.DictCursor
-#     )
+        return jsonify({
+            "success": True,
+            "message": "Logged in successfully with Google!"
+        }), 200
 
-#     for course in courses:
-#         table_name = course['course_id']   # table = course_id in classrooms DB
-#         sql = f"SELECT current, total FROM `{table_name}` WHERE roll_no = %s"
-#         with connection.cursor() as cursor:
-#             cursor.execute(sql, (roll_no,))
-#             result = cursor.fetchone()
+    except ValueError:
+        return jsonify({"success": False, "message": "Invalid Google token"}), 401
 
-#         if result and result['total'] > 0:
-#             attendance = (result['current'] / result['total']) * 100
-#         else:
-#             attendance = 0.0
+    except Exception as e:
+        # THIS IS CRITICAL: If your DB schema is missing columns, it will print here.
+        print(f"GOOGLE LOGIN FAILED: {str(e)}")
+        db.session.rollback() # Prevent broken database state
+        return jsonify({"success": False, "message": "Internal Server Error"}), 500
 
-#         # Add attendance field into each course dict
-#         course['attendance'] = round(attendance, 2)
 
-#     connection.close()
+
+
 
 @app.route('/student/dashboard')
 def student_dashboard():
