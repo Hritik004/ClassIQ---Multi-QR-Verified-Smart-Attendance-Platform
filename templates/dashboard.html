@@ -1,898 +1,388 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ClassIQ - Smart QR-Based Attendance System</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
-
-        /* Animated Background Elements */
-        .bg-animation {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-            overflow: hidden;
-        }
-
-        .floating-element {
-            position: absolute;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
-            animation: float 6s ease-in-out infinite;
-        }
-
-        .floating-element:nth-child(1) {
-            width: 80px;
-            height: 80px;
-            top: 20%;
-            left: 10%;
-            animation-delay: 0s;
-        }
-
-        .floating-element:nth-child(2) {
-            width: 120px;
-            height: 120px;
-            top: 70%;
-            left: 80%;
-            animation-delay: 2s;
-        }
-
-        .floating-element:nth-child(3) {
-            width: 60px;
-            height: 60px;
-            top: 40%;
-            left: 70%;
-            animation-delay: 4s;
-        }
-
-        .floating-element:nth-child(4) {
-            width: 100px;
-            height: 100px;
-            top: 80%;
-            left: 20%;
-            animation-delay: 1s;
-        }
-
-        @keyframes float {
-            0%, 100% {
-                transform: translateY(0px) rotate(0deg);
-            }
-            50% {
-                transform: translateY(-20px) rotate(180deg);
-            }
-        }
-
-        /* Header */
-        .header {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            padding: 15px 0;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .nav-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            color: white;
-            font-size: 28px;
-            font-weight: bold;
-            text-decoration: none;
-        }
-
-        .logo-icon {
-            font-size: 32px;
-            margin-right: 10px;
-            animation: rotate 4s linear infinite;
-        }
-
-        @keyframes rotate {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 30px;
-            align-items: center;
-        }
-
-        .nav-link {
-            color: white;
-            text-decoration: none;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            padding: 8px 16px;
-            border-radius: 20px;
-        }
-
-        .nav-link:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: translateY(-2px);
-        }
-
-        /* Hero Section */
-        .hero {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 80px 30px;
-            text-align: center;
-            color: white;
-        }
-
-        .hero h1 {
-            font-size: 4rem;
-            font-weight: 800;
-            margin-bottom: 20px;
-            background: linear-gradient(45deg, #ffffff, #f8f9ff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            animation: slideInDown 1s ease-out;
-        }
-
-        .hero p {
-            font-size: 1.3rem;
-            margin-bottom: 40px;
-            opacity: 0.9;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-            line-height: 1.6;
-            animation: slideInUp 1s ease-out 0.2s both;
-        }
-
-        @keyframes slideInDown {
-            from { opacity: 0; transform: translateY(-50px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        @keyframes slideInUp {
-            from { opacity: 0; transform: translateY(50px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Login Options */
-        .login-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 40px;
-            max-width: 900px;
-            margin: 0 auto 80px;
-            padding: 0 30px;
-        }
-
-        .login-card {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 25px;
-            padding: 40px;
-            text-align: center;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            /* Remove underline and blue color from links inside .login-btn */
-            .login-btn a {
-                color: inherit;
-                text-decoration: none;
-                font-weight: inherit;
-                font-size: inherit;
-                font-family: inherit;
-                background: none;
-                border: none;
-                padding: 0;
-                margin: 0;
-                box-shadow: none;
-            }
-            .login-btn a:hover {
-                color: inherit;
-                text-decoration: none;
-            }
-            transition: all 0.4s ease;
-            position: relative;
-            overflow: hidden;
-            animation: fadeInScale 0.8s ease-out;
-            cursor: pointer;
-        }
-
-        .login-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-            transition: left 0.5s;
-        }
-
-        .login-card:hover::before {
-            left: 100%;
-        }
-
-        .login-card:hover {
-            transform: translateY(-10px) rotateY(5deg);
-            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.2);
-        }
-
-        .login-card:nth-child(1) {
-            animation-delay: 0.2s;
-        }
-
-        .login-card:nth-child(2) {
-            animation-delay: 0.4s;
-        }
-
-        @keyframes fadeInScale {
-            from { opacity: 0; transform: scale(0.8) translateY(30px); }
-            to { opacity: 1; transform: scale(1) translateY(0); }
-        }
-
-        .card-icon {
-            font-size: 4rem;
-            margin-bottom: 20px;
-            display: block;
-        }
-
-        .student-card .card-icon {
-            background: linear-gradient(45deg, #4facfe, #00f2fe);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .faculty-card .card-icon {
-            background: linear-gradient(45deg, #fa709a, #fee140);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .card-title {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 15px;
-        }
-
-        .card-description {
-            color: #666;
-            margin-bottom: 30px;
-            line-height: 1.6;
-            font-size: 1.1rem;
-        }
-
-        .login-btn {
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            color: white;
-            border: none;
-            padding: 15px 40px;
-            border-radius: 50px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
-        }
-
-        .student-card .login-btn {
-            background: linear-gradient(45deg, #4facfe, #00f2fe);
-            box-shadow: 0 10px 30px rgba(79, 172, 254, 0.3);
-        }
-
-        .faculty-card .login-btn {
-            background: linear-gradient(45deg, #fa709a, #fee140);
-            box-shadow: 0 10px 30px rgba(250, 112, 154, 0.3);
-        }
-
-        .login-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
-        }
-
-        /* Statistics Section */
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 30px;
-            max-width: 1000px;
-            margin: 80px auto;
-            padding: 0 30px;
-        }
-
-        .stat-item {
-            text-align: center;
-            color: white;
-            animation: countUp 2s ease-out;
-        }
-
-        .stat-number {
-            font-size: 3rem;
-            font-weight: bold;
-            display: block;
-            margin-bottom: 10px;
-        }
-
-        .stat-label {
-            font-size: 1.1rem;
-            opacity: 0.9;
-        }
-
-        /* Features Section */
-        .features {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            margin: 80px 30px;
-            padding: 60px 40px;
-            border-radius: 30px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .features-container {
-            max-width: 1000px;
-            margin: 0 auto;
-        }
-
-        .features h2 {
-            text-align: center;
-            color: white;
-            font-size: 2.5rem;
-            margin-bottom: 50px;
-            font-weight: 700;
-        }
-
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 30px;
-        }
-
-        .feature-item {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 25px;
-            border-radius: 20px;
-            text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            transition: all 0.3s ease;
-        }
-
-        .feature-item:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: translateY(-5px);
-        }
-
-        .feature-icon {
-            font-size: 2.5rem;
-            color: white;
-            margin-bottom: 15px;
-            display: block;
-        }
-
-        .feature-title {
-            color: white;
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-bottom: 10px;
-        }
-
-        .feature-description {
-            color: rgba(255, 255, 255, 0.8);
-            line-height: 1.5;
-        }
-
-        /* Footer */
-        .footer {
-            background: rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(10px);
-            padding: 40px 30px;
-            text-align: center;
-            color: white;
-            margin-top: 80px;
-        }
-
-        .footer-content {
-            max-width: 1000px;
-            margin: 0 auto;
-        }
-
-        .footer p {
-            margin-bottom: 20px;
-            opacity: 0.8;
-        }
-
-        .footer-links {
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            margin-bottom: 20px;
-        }
-
-        .footer-link {
-            color: white;
-            text-decoration: none;
-            transition: color 0.3s ease;
-        }
-
-        .footer-link:hover {
-            color: #4facfe;
-        }
-
-        /* Loading Animation */
-        .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-            transition: opacity 0.5s ease;
-        }
-
-        .loading-content {
-            text-align: center;
-            color: white;
-        }
-
-        .loading-spinner {
-            width: 60px;
-            height: 60px;
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-top: 4px solid white;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .loading-text {
-            font-size: 1.2rem;
-            font-weight: 500;
-        }
-
-        /* Hide loading overlay after page loads */
-        .loaded .loading-overlay {
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            .hero h1 {
-                font-size: 2.5rem;
-            }
-
-            .hero p {
-                font-size: 1.1rem;
-            }
-
-            .login-container {
-                grid-template-columns: 1fr;
-                gap: 30px;
-            }
-
-            .nav-links {
-                display: none;
-            }
-
-            .stats {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-            .features {
-                margin: 40px 15px;
-                padding: 40px 20px;
-            }
-
-            .footer-links {
-                flex-direction: column;
-                gap: 15px;
-            }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClassIQ — Attendance that can't be faked</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --violet-1:#6a5ff0;
+    --violet-2:#8b5cf6;
+    --violet-3:#4f46e5;
+    --ink:#211f36;
+    --muted:#6b6885;
+    --card:#ffffff;
+    --hair:rgba(33,31,54,0.08);
+    --mint:#00c896;
+    --font-display:'Fraunces', serif;
+    --font-body:'Inter', sans-serif;
+    --font-mono:'JetBrains Mono', monospace;
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+
+  body{
+    font-family:var(--font-body);
+    color:var(--ink);
+    background:
+      radial-gradient(1100px 600px at 85% -10%, rgba(139,92,246,0.16), transparent),
+      radial-gradient(900px 500px at -10% 20%, rgba(106,95,240,0.14), transparent),
+      #f7f6fb;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  a{color:inherit;text-decoration:none;}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 28px;}
+
+  /* ---------- header ---------- */
+  header{
+    position:sticky;top:0;z-index:50;
+    background:rgba(247,246,251,0.82);
+    backdrop-filter:blur(12px);
+    border-bottom:1px solid var(--hair);
+  }
+  .nav{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:20px 28px;max-width:1080px;margin:0 auto;
+  }
+  .logo{
+    font-family:var(--font-display);font-weight:600;font-size:21px;
+    display:flex;align-items:center;gap:9px;letter-spacing:-0.01em;
+  }
+  .logo .dot{
+    width:9px;height:9px;border-radius:2px;
+    background:linear-gradient(135deg,var(--violet-1),var(--mint));
+  }
+  .nav-links{display:flex;align-items:center;gap:34px;}
+  .nav-links a{font-size:14px;color:var(--muted);font-weight:500;transition:color .2s ease;}
+  .nav-links a:hover{color:var(--ink);}
+  .nav .login-pill{
+    font-size:14px;color:#fff;font-weight:600;
+    background:linear-gradient(135deg,var(--violet-1),var(--violet-3));
+    padding:10px 22px;border-radius:100px;
+    box-shadow:0 10px 24px rgba(106,95,240,0.28);
+    transition:transform .2s ease, box-shadow .2s ease;
+  }
+  .nav .login-pill:hover{transform:translateY(-1px);box-shadow:0 14px 30px rgba(106,95,240,0.36);}
+
+  /* ---------- hero ---------- */
+  .hero{
+    padding:88px 28px 76px;max-width:1080px;margin:0 auto;
+    display:grid;grid-template-columns:1.05fr 0.95fr;gap:56px;align-items:center;
+  }
+  .eyebrow{
+    font-family:var(--font-mono);font-size:12px;color:var(--violet-3);
+    letter-spacing:0.08em;text-transform:uppercase;
+    display:inline-flex;align-items:center;gap:8px;
+    background:rgba(106,95,240,0.09);border:1px solid rgba(106,95,240,0.16);
+    padding:7px 14px;border-radius:100px;margin-bottom:26px;
+  }
+  .eyebrow .pulse{
+    width:6px;height:6px;background:var(--mint);border-radius:50%;
+    animation:blink 1.8s ease-in-out infinite;
+  }
+  @keyframes blink{0%,100%{opacity:1;}50%{opacity:0.25;}}
+
+  .hero h1{
+    font-family:var(--font-display);font-weight:600;
+    font-size:3.3rem;line-height:1.08;letter-spacing:-0.01em;
+    margin-bottom:22px;color:var(--ink);
+  }
+  .hero h1 em{
+    font-style:normal;
+    background:linear-gradient(135deg,var(--violet-1),var(--violet-3));
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  }
+  .hero p{color:var(--muted);font-size:1.06rem;max-width:440px;margin-bottom:34px;}
+
+  .cta-row{display:flex;align-items:center;gap:20px;flex-wrap:wrap;}
+  .btn-primary{
+    font-weight:600;font-size:15px;color:#fff;
+    background:linear-gradient(135deg,var(--violet-1),var(--violet-3));
+    padding:16px 32px;border-radius:100px;
+    display:inline-flex;align-items:center;gap:10px;
+    box-shadow:0 14px 32px rgba(106,95,240,0.3);
+    transition:transform .2s ease, box-shadow .2s ease;
+  }
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 18px 40px rgba(106,95,240,0.38);}
+  .cta-note{font-size:13px;color:var(--muted);}
+  .cta-note b{color:var(--ink);font-weight:600;}
+
+  /* Sign up line styling below Log in */
+  .signup-prompt {
+    margin-top: 18px;
+    font-size: 14px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .signup-prompt a {
+    color: var(--violet-3);
+    font-weight: 600;
+    transition: color .2s ease;
+  }
+  .signup-prompt a:hover {
+    color: var(--violet-1);
+    text-decoration: underline;
+  }
+
+  /* ---------- signature: living QR card ---------- */
+  .qr-stage{
+    position:relative;aspect-ratio:1/1;background:var(--card);
+    border:1px solid var(--hair);border-radius:24px;
+    padding:26px;overflow:hidden;
+    box-shadow:0 30px 70px rgba(76,63,180,0.14);
+  }
+  .qr-grid{
+    display:grid;grid-template-columns:repeat(12,1fr);grid-template-rows:repeat(12,1fr);
+    gap:4px;width:100%;height:100%;position:relative;z-index:1;
+  }
+  .qr-cell{background:rgba(33,31,54,0.06);border-radius:1px;transition:background .25s ease;}
+  .qr-cell.on{background:linear-gradient(135deg,var(--violet-1),var(--mint));}
+  .qr-cell.anchor{background:var(--ink);}
+  .scanline{
+    position:absolute;left:0;right:0;height:36%;
+    background:linear-gradient(180deg, transparent, rgba(106,95,240,0.14), transparent);
+    animation:sweep 3.6s ease-in-out infinite;pointer-events:none;z-index:2;
+  }
+  @keyframes sweep{0%{top:-36%;}100%{top:100%;}}
+  .qr-caption{
+    position:absolute;bottom:14px;left:26px;right:26px;
+    font-family:var(--font-mono);font-size:11px;color:var(--muted);
+    display:flex;justify-content:space-between;z-index:3;
+  }
+  .qr-caption .live{color:var(--mint);font-weight:500;}
+
+  @media (prefers-reduced-motion: reduce){
+    .scanline,.pulse{animation:none;}
+  }
+
+  /* ---------- how it works ---------- */
+  section.block{padding:64px 28px;max-width:1080px;margin:0 auto;}
+  .section-head{margin-bottom:42px;max-width:560px;}
+  .section-head .tag{
+    font-family:var(--font-mono);font-size:12px;color:var(--violet-3);
+    text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;display:block;
+  }
+  .section-head h2{
+    font-family:var(--font-display);font-size:2rem;font-weight:600;letter-spacing:-0.01em;
+  }
+  .section-head p{color:var(--muted);margin-top:10px;font-size:0.98rem;}
+
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;}
+  .step{
+    background:var(--card);border:1px solid var(--hair);border-radius:16px;padding:28px;
+    box-shadow:0 12px 30px rgba(76,63,180,0.06);
+  }
+  .step .num{
+    font-family:var(--font-mono);color:var(--violet-3);font-size:13px;margin-bottom:16px;display:block;
+  }
+  .step h3{font-family:var(--font-display);font-size:1.1rem;margin-bottom:8px;font-weight:600;}
+  .step p{color:var(--muted);font-size:0.92rem;}
+
+  /* ---------- about / blog ---------- */
+  .about{background:linear-gradient(180deg, rgba(106,95,240,0.05), rgba(106,95,240,0));border-top:1px solid var(--hair);border-bottom:1px solid var(--hair);}
+  .about-inner{padding:76px 28px;max-width:1080px;margin:0 auto;}
+  .about-grid{display:grid;grid-template-columns:0.9fr 1.1fr;gap:56px;align-items:start;}
+  .about-copy .tag{
+    font-family:var(--font-mono);font-size:12px;color:var(--violet-3);
+    text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px;display:block;
+  }
+  .about-copy h2{
+    font-family:var(--font-display);font-size:1.9rem;font-weight:600;letter-spacing:-0.01em;
+    margin-bottom:18px;
+  }
+  .about-copy p{color:var(--muted);font-size:0.98rem;margin-bottom:16px;}
+  .about-copy p b{color:var(--ink);font-weight:600;}
+
+  .feature-list{display:flex;flex-direction:column;gap:2px;}
+  .feature-row{
+    display:grid;grid-template-columns:44px 1fr;gap:18px;
+    padding:20px 6px;border-bottom:1px solid var(--hair);
+  }
+  .feature-row:last-child{border-bottom:none;}
+  .feature-row .ic{
+    width:40px;height:40px;border-radius:10px;
+    background:rgba(106,95,240,0.1);
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--font-mono);color:var(--violet-3);font-size:13px;font-weight:500;
+  }
+  .feature-row h4{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:4px;}
+  .feature-row p{color:var(--muted);font-size:0.9rem;}
+
+  /* ---------- footer ---------- */
+  footer{padding:40px 28px;}
+  .footer-inner{
+    max-width:1080px;margin:0 auto;display:flex;justify-content:space-between;
+    align-items:center;flex-wrap:wrap;gap:16px;
+    color:var(--muted);font-size:13px;
+  }
+  .footer-inner .logo{font-size:16px;}
+  .footer-links{display:flex;gap:22px;}
+  .footer-links a{color:var(--muted);transition:color .2s ease;}
+  .footer-links a:hover{color:var(--ink);}
+
+  /* ---------- responsive ---------- */
+  @media (max-width:860px){
+    .hero{grid-template-columns:1fr;padding-top:56px;}
+    .hero h1{font-size:2.3rem;}
+    .qr-stage{max-width:320px;margin:0 auto;}
+    .steps{grid-template-columns:1fr;}
+    .about-grid{grid-template-columns:1fr;gap:36px;}
+    .nav-links{display:none;}
+  }
+
+  :focus-visible{outline:2px solid var(--violet-1);outline-offset:3px;}
+</style>
 </head>
-
 <body>
-    <!-- Loading Overlay -->
-    <div class="loading-overlay" id="loading-overlay">
-        <div class="loading-content">
-            <div class="loading-spinner"></div>
-            <div class="loading-text">Loading ClassIQ...</div>
-        </div>
+
+<header>
+  <div class="nav">
+    <a href="#" class="logo"><span class="dot"></span>ClassIQ</a>
+    <nav class="nav-links">
+      <a href="#how">How it works</a>
+      <a href="#about">About</a>
+      <a href="/login" class="login-pill">Log in</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div>
+    <span class="eyebrow"><span class="pulse"></span>QR regenerates every session</span>
+    <h1>Attendance that can't be <em>faked</em>.</h1>
+    <p>ClassIQ replaces the roll call with a QR code that changes on every scan — so a screenshot from yesterday is worthless today.</p>
+    <div class="cta-row">
+      <a href="/login" class="btn-primary">Log in →</a>
+      <span class="cta-note">One account, <b>role-aware</b> after sign in.</span>
     </div>
-
-    <!-- Animated Background -->
-    <div class="bg-animation">
-        <div class="floating-element"></div>
-        <div class="floating-element"></div>
-        <div class="floating-element"></div>
-        <div class="floating-element"></div>
+    
+    <!-- Sign up prompt added here -->
+    <div class="signup-prompt">
+      Don't have an account? <a href="/signup">Sign up here →</a>
     </div>
+  </div>
 
-    <!-- Header -->
-    <header class="header">
-        <div class="nav-container">
-            <a href="#" class="logo">
-                <span class="logo-icon">🎓</span>
-                ClassIQ
-            </a>
-            <nav class="nav-links">
-                <a href="#features" class="nav-link">Features</a>
-                <a href="#about" class="nav-link">About</a>
-                <a href="#contact" class="nav-link">Contact</a>
-                <a href="#help" class="nav-link">Help</a>
-            </nav>
+  <div class="qr-stage" id="qrStage" aria-hidden="true">
+    <div class="qr-grid" id="qrGrid"></div>
+    <div class="scanline"></div>
+    <div class="qr-caption"><span class="live">● regenerating</span><span>session #48A2E1</span></div>
+  </div>
+</section>
+
+<section class="block" id="how">
+  <div class="section-head">
+    <span class="tag">How it works</span>
+    <h2>Three steps, no queue.</h2>
+    <p>Every code is single-session and tied to the device that requested it.</p>
+  </div>
+  <div class="steps">
+    <div class="step">
+      <span class="num">01</span>
+      <h3>Code is generated</h3>
+      <p>A fresh, randomized QR code is issued for the session — never reused, never predictable.</p>
+    </div>
+    <div class="step">
+      <span class="num">02</span>
+      <h3>Scan is verified</h3>
+      <p>An OTP and IP check confirm the scan is happening from the right place, in real time.</p>
+    </div>
+    <div class="step">
+      <span class="num">03</span>
+      <h3>Attendance is logged</h3>
+      <p>The record lands on the right dashboard instantly, with a live view of who's present.</p>
+    </div>
+  </div>
+</section>
+
+<section class="about" id="about">
+  <div class="about-inner">
+    <div class="about-grid">
+      <div class="about-copy">
+        <span class="tag">From the build log</span>
+        <h2>Why the QR code alone wasn't enough</h2>
+        <p>Static QR codes get screenshotted and shared in group chats within minutes — so ClassIQ was built as a <b>Flask-based smart attendance system</b> around QR codes that regenerate on every session, making a saved screenshot or proxy scan useless.</p>
+        <p>Code alone doesn't stop proxy attendance, so verification happens in layers: <b>OTP confirmation</b> ties the scan to the person, and <b>IP whitelisting</b> ties it to the room. On top of that sit <b>role-based dashboards</b> for students and faculty, with attendance monitoring that updates as scans come in.</p>
+      </div>
+      <div class="feature-list">
+        <div class="feature-row">
+          <div class="ic">QR</div>
+          <div><h4>Randomized QR codes</h4><p>A new code per session closes the screenshot-and-share loophole entirely.</p></div>
         </div>
-    </header>
-
-    <!-- Hero Section -->
-    <section class="hero">
-        <h1>ClassIQ</h1>
-        <p>Revolutionary QR-based attendance system that makes marking attendance effortless, secure, and
-            intelligent. Join thousands of educational institutions already using our smart solution.</p>
-
-        <!-- Login Options -->
-        <div class="login-container">
-            <!-- Student Login Card -->
-            <div class="login-card student-card" >
-                <span class="card-icon">👨‍🎓</span>
-                <h3 class="card-title" >Student Portal</h3>
-                <p class="card-description">
-                    Scan QR codes instantly, track your attendance, view detailed reports, and manage your
-                    academic progress with ease.
-                </p>
-                <div class="login-btn">
-                    <span>📱</span>
-                    <a href="/login_student">Student Login</a>
-                </div>
-            </div>
-
-            <!-- Faculty Login Card -->
-            <div class="login-card faculty-card" >
-                <span class="card-icon">👩‍🏫</span>
-                <h3 class="card-title">Faculty Portal</h3>
-                <p class="card-description">
-                    Generate secure QR codes, monitor real-time attendance, analyze student performance, and
-                    manage your classes efficiently.
-                </p>
-                <div class="login-btn">
-                    <span>🖥️</span>
-                   <a href="/login_faculty">Faculty Login</a>
-                </div>
-            </div>
+        <div class="feature-row">
+          <div class="ic">#</div>
+          <div><h4>OTP verification</h4><p>A one-time code confirms it's the actual student scanning, not someone on their behalf.</p></div>
         </div>
-    </section>
-
-    <!-- Statistics -->
-    <section class="stats">
-        <div class="stat-item">
-            <span class="stat-number" data-target="1000">0</span>
-            <span class="stat-label">Active Users</span>
+        <div class="feature-row">
+          <div class="ic">IP</div>
+          <div><h4>IP whitelisting</h4><p>Scans are only accepted from the classroom's network, blocking off-site proxy marking.</p></div>
         </div>
-        <div class="stat-item">
-            <span class="stat-number" data-target="50">0</span>
-            <span class="stat-label">Partner Institutions</span>
+        <div class="feature-row">
+          <div class="ic">◧</div>
+          <div><h4>Role-based dashboards</h4><p>Students and faculty each see exactly what's relevant to them after logging in.</p></div>
         </div>
-        <div class="stat-item">
-            <span class="stat-number" data-target="95">0</span>
-            <span class="stat-label">Accuracy Rate</span>
+        <div class="feature-row">
+          <div class="ic">∿</div>
+          <div><h4>Live attendance monitoring</h4><p>Faculty can watch attendance come in as it happens, not after the fact.</p></div>
         </div>
-        <div class="stat-item">
-            <span class="stat-number" data-target="24">0</span>
-            <span class="stat-label">Hours Support</span>
-        </div>
-    </section>
+      </div>
+    </div>
+  </div>
+</section>
 
-    <!-- Features Section -->
-    <section class="features" id="features">
-        <div class="features-container">
-            <h2>Why Choose ClassIQ?</h2>
-            <div class="features-grid">
-                <div class="feature-item">
-                    <span class="feature-icon">⚡</span>
-                    <h4 class="feature-title">Lightning Fast</h4>
-                    <p class="feature-description">Mark attendance in seconds with our optimized QR scanning
-                        technology. No more time-consuming roll calls.</p>
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon">🔒</span>
-                    <h4 class="feature-title">Highly Secure</h4>
-                    <p class="feature-description">Advanced encryption, device restrictions, and session-based
-                        QR codes prevent fraud and ensure data integrity.</p>
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon">📊</span>
-                    <h4 class="feature-title">Smart Analytics</h4>
-                    <p class="feature-description">Comprehensive reports, attendance trends, and predictive
-                        insights help improve academic performance.</p>
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon">📱</span>
-                    <h4 class="feature-title">Mobile First</h4>
-                    <p class="feature-description">Designed for smartphones with intuitive interfaces that work
-                        seamlessly across all devices and platforms.</p>
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon">🌐</span>
-                    <h4 class="feature-title">Cloud Based</h4>
-                    <p class="feature-description">Access your data anywhere, anytime with our reliable cloud
-                        infrastructure and real-time synchronization.</p>
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon">💡</span>
-                    <h4 class="feature-title">AI Powered</h4>
-                    <p class="feature-description">Machine learning algorithms detect patterns, prevent fraud,
-                        and provide intelligent attendance recommendations.</p>
-                </div>
-            </div>
-        </div>
-    </section>
+<footer>
+  <div class="footer-inner">
+    <a href="#" class="logo"><span class="dot"></span>ClassIQ</a>
+    <div class="footer-links">
+      <a href="#how">How it works</a>
+      <a href="#about">About</a>
+      <a href="/login">Log in</a>
+    </div>
+  </div>
+</footer>
 
-    <!-- Footer -->
-    <footer class="footer" id="contact">
-        <div class="footer-content">
-            <p>© 2024 ClassIQ. All rights reserved. Making attendance management smarter, one scan at a time.</p>
-            <div class="footer-links">
-                <a href="#" class="footer-link">Privacy Policy</a>
-                <a href="#" class="footer-link">Terms of Service</a>
-                <a href="#" class="footer-link">Support</a>
-                <a href="#" class="footer-link">Documentation</a>
-                <a href="#" class="footer-link">API</a>
-            </div>
-            <p style="margin-top: 20px; font-size: 14px; opacity: 0.7;">
-                📧 support@ClassIQ.com | 📞 +91-1234567890 | 🌐 www.ClassIQ.com
-            </p>
-        </div>
-    </footer>
+<script>
+  (function(){
+    const grid = document.getElementById('qrGrid');
+    const SIZE = 12;
+    const cells = [];
 
-    <script>
-        // Page loading animation
-        window.addEventListener('load', function () {
-            setTimeout(() => {
-                document.body.classList.add('loaded');
-            }, 1500);
-        });
+    for (let i = 0; i < SIZE * SIZE; i++){
+      const c = document.createElement('div');
+      c.className = 'qr-cell';
+      grid.appendChild(c);
+      cells.push(c);
+    }
 
-        // Navigation functions - redirect to separate login files
-        function goToStudentLogin() {
-            showNotification('🚀 Redirecting to Student Login...', 'info');
-            setTimeout(() => {
-                window.location.href = 'login_student.html';
-            }, 500);
-        }
+    const anchors = [];
+    [[0,0],[0,1],[1,0],[1,1],
+     [0,10],[0,11],[1,10],[1,11],
+     [10,0],[10,1],[11,0],[11,1]].forEach(([r,cIdx])=>{
+      anchors.push(r*SIZE+cIdx);
+    });
+    anchors.forEach(idx => cells[idx].classList.add('anchor'));
 
-        function goToFacultyLogin() {
-            showNotification('🚀 Redirecting to Faculty Login...', 'info');
-            setTimeout(() => {
-                window.location.href = 'login_faculty.html';
-            }, 500);
-        }
+    function randomize(){
+      cells.forEach((cell, idx) => {
+        if (anchors.includes(idx)) return;
+        cell.classList.toggle('on', Math.random() > 0.62);
+      });
+    }
 
-        // Notification system
-        function showNotification(message, type = 'info') {
-            const notification = document.createElement('div');
-            const bgColor = {
-                success: '#28a745',
-                error: '#dc3545',
-                info: '#4facfe',
-                warning: '#ffc107'
-            };
+    randomize();
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!reduceMotion){
+      setInterval(randomize, 900);
+    }
+  })();
+</script>
 
-            notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: ${bgColor[type] || bgColor.info};
-                color: white;
-                padding: 15px 25px;
-                border-radius: 10px;
-                box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-                z-index: 10000;
-                animation: slideInRight 0.3s ease-out;
-                max-width: 350px;
-                font-weight: 500;
-                white-space: pre-line;
-            `;
-            notification.textContent = message;
-
-            document.body.appendChild(notification);
-
-            setTimeout(() => {
-                notification.style.animation = 'slideOutRight 0.3s ease-in forwards';
-                setTimeout(() => notification.remove(), 300);
-            }, 3000);
-        }
-
-        // Add animation CSS for notifications
-        const additionalCSS = `
-            @keyframes slideInRight {
-                from { transform: translateX(100%); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
-            }
-            @keyframes slideOutRight {
-                from { transform: translateX(0); opacity: 1; }
-                to { transform: translateX(100%); opacity: 0; }
-            }
-        `;
-
-        const style = document.createElement('style');
-        style.textContent = additionalCSS;
-        document.head.appendChild(style);
-
-        // Animated counter for statistics
-        function animateCounters() {
-            const counters = document.querySelectorAll('.stat-number');
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        const counter = entry.target;
-                        const target = parseInt(counter.getAttribute('data-target'));
-                        let current = 0;
-                        const increment = target / 50;
-
-                        const updateCounter = () => {
-                            if (current < target) {
-                                current += increment;
-                                counter.textContent = Math.round(current);
-                                requestAnimationFrame(updateCounter);
-                            } else {
-                                counter.textContent = target;
-                            }
-                        };
-                        updateCounter();
-                        observer.unobserve(counter);
-                    }
-                });
-            }, { threshold: 0.7 });
-
-            counters.forEach(counter => observer.observe(counter));
-        }
-
-        // Initialize counters
-        animateCounters();
-
-        // Smooth scrolling for navigation links
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                }
-            });
-        });
-
-        // Add parallax effect to floating elements
-        window.addEventListener('scroll', () => {
-            const scrolled = window.pageYOffset;
-            const parallaxElements = document.querySelectorAll('.floating-element');
-
-            parallaxElements.forEach((element, index) => {
-                const speed = 0.5 + (index * 0.1);
-                element.style.transform = `translateY(${scrolled * speed}px) rotate(${scrolled * 0.1}deg)`;
-            });
-        });
-
-        // Add entrance animations on scroll
-        const observerOptions = {
-            threshold: 0.1,
-            rootMargin: '0px 0px -50px 0px'
-        };
-
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.style.animation = 'fadeInScale 0.8s ease-out forwards';
-                }
-            });
-        }, observerOptions);
-
-        // Observe feature items
-        document.querySelectorAll('.feature-item').forEach(item => {
-            observer.observe(item);
-        });
-
-        // Interactive hover effects for login cards
-        document.querySelectorAll('.login-card').forEach(card => {
-            card.addEventListener('mousemove', (e) => {
-                const rect = card.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-
-                const centerX = rect.width / 2;
-                const centerY = rect.height / 2;
-
-                const rotateX = (y - centerY) / 10;
-                const rotateY = (centerX - x) / 10;
-
-                card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-5px)`;
-            });
-
-            card.addEventListener('mouseleave', () => {
-                card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) translateY(0)';
-            });
-        });
-
-        // Add dynamic gradient animation to dashboard
-        let gradientAngle = 135;
-        function animateGradient() {
-            gradientAngle += 0.5;
-            if (gradientAngle > 225) gradientAngle = 135;
-            document.body.style.background = `linear-gradient(${gradientAngle}deg, #667eea 0%, #764ba2 100%)`;
-        }
-
-        setInterval(animateGradient, 100);
-
-        // Welcome message
-        console.log(`
-        🎓 ClassIQ Dashboard Loaded Successfully!
-
-        Navigation Functions:
-        • goToStudentLogin() - Redirects to login_student.html
-        • goToFacultyLogin() - Redirects to login_faculty.html
-
-        Built with ❤️ for modern education!
-        `);
-
-        // Easter egg - click logo 5 times for demo
-        let logoClickCount = 0;
-        document.querySelector('.logo').addEventListener('click', (e) => {
-            if (e.target.closest('.logo')) {
-                logoClickCount++;
-                if (logoClickCount === 5) {
-                    showNotification('🎉 Easter Egg!\nDemo mode available in login pages!', 'success');
-                    logoClickCount = 0;
-                }
-            }
-        });
-
-        // Initialize app
-        document.addEventListener('DOMContentLoaded', function () {
-            // Welcome notification
-            setTimeout(() => {
-                showNotification('🎓 Welcome to ClassIQ!\nClick on Student or Faculty portal to get started.', 'info');
-            }, 2000);
-        });
-    </script>
 </body>
-
 </html>

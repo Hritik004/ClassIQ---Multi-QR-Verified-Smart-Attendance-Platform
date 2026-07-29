@@ -20,7 +20,7 @@ EMAIL_KEY = os.getenv("EMAIL_KEY")#36
 app = Flask(__name__)
 app.secret_key = APP_SECRET_KEY
 # Configure MySQL database connection (PythonAnywhere MySQL settings)
-app.config['SQLALCHEMY_DATABASE_URI'] = F'mysql+pymysql://classiq:{PYMYSQL_KEY}@classiq.mysql.pythonanywhere-services.com/classiq$accounts'
+app.config['SQLALCHEMY_DATABASE_URI'] = F'mysql+pymysql://classiq:{PYMYSQL_KEY}@classiq.mysql.pythonanywhere-services.com/classiq$account'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     "pool_pre_ping": True,
@@ -43,11 +43,39 @@ mail = Mail(app)
 
 # Define the User table
 class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    name = db.Column(db.String(100), nullable=False)
-    department = db.Column(db.String(100), nullable=False)
-    password = db.Column(db.String(200), nullable=False)
+    __tablename__ = "users"
+
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+
+    first_name = db.Column(db.String(100), nullable=False)
+    last_name = db.Column(db.String(100), nullable=True)
+
+    email = db.Column(db.String(255), unique=True, nullable=False)
+
+    password_hash = db.Column(db.String(255), nullable=True)
+
+    auth_provider = db.Column(
+        db.Enum("local", "google", name="auth_provider_enum"),
+        nullable=False,
+        default="local"
+    )
+
+    provider_user_id = db.Column(db.String(255), nullable=True)
+
+    created_at = db.Column(
+        db.DateTime,
+        server_default=db.func.current_timestamp(),
+        nullable=False
+    )
+
+    updated_at = db.Column(
+        db.DateTime,
+        server_default=db.func.current_timestamp(),
+        server_onupdate=db.func.current_timestamp(),
+        nullable=False
+    )
+
+
 
 # Define the Student_info table
 class StudentInfo(db.Model):
@@ -159,14 +187,14 @@ def save_data():
     finally:
         conn.close()
 
-@app.route('/signup_faculty')
+@app.route('/signup')
 def signup_faculty():
-    return render_template('signup_faculty2.html')
+    return render_template('signup.html')
 
 
-@app.route('/signup_student')
-def signup_student():
-    return render_template('signup_student.html')
+# @app.route('/signup_student')
+# def signup_student():
+#     return render_template('signup_student.html')
 
 
 @app.route('/dashboard')
@@ -182,9 +210,74 @@ def logout_student():
     return redirect(url_for('login_student'))
 
 
-@app.route('/login_student',methods=['GET'])
+@app.route('/login',methods=['GET'])
 def login_student():
-    return render_template('login_student.html')
+    return render_template('login.html')
+
+
+
+
+@app.route('/login', methods=['POST'])
+def login():
+
+    data = request.get_json()
+
+    email = data.get('email')
+    password = data.get('password')
+
+
+    # Validate input
+    if not email or not password:
+        return jsonify({
+            "success": False,
+            "message": "Email and password are required"
+        }), 400
+
+
+    # Find user by email
+    user = User.query.filter_by(email=email).first()
+
+
+    if not user:
+        return jsonify({
+            "success": False,
+            "message": "User does not exist"
+        }), 404
+
+
+    # Check authentication provider
+    if user.auth_provider != "local":
+        return jsonify({
+            "success": False,
+            "message": "Please login using Google authentication"
+        }), 400
+
+
+    # Verify password
+    if not check_password_hash(user.password_hash, password):
+        return jsonify({
+            "success": False,
+            "message": "Invalid password"
+        }), 401
+
+
+    # Create login session
+    session['user_id'] = user.id
+    session['email'] = user.email
+    session['name'] = user.first_name
+
+
+    return jsonify({
+        "success": True,
+        "message": "Login successful",
+        "user": {
+            "id": user.id,
+            "name": user.first_name,
+            "email": user.email
+        }
+    }), 200
+
+
 
 # API route to authenticate student login
 @app.route('/login_student_', methods=['POST'])
@@ -723,20 +816,25 @@ def login_facultyy():
         print("entered else")
         return jsonify({"success": False, "message": "Invalid email or password"}), 401
 
+
 @app.route('/')
 def root():
     return redirect(url_for('dashboard'))
 
-
 @app.route('/register', methods=['POST'])
 def register():
-    data = request.json
+    data = request.get_json()
+
+    first_name = data.get('firstName')
+    last_name = data.get('lastName')
     email = data.get('email')
-    name = data.get('facultyName')
-    department = data.get('department')
     password = data.get('password')
 
-    # Check if the user already exists
+    # Validate required fields
+    if not first_name or not email or not password:
+        return jsonify({'message': 'Missing required fields.'}), 400
+
+    # Check if user already exists
     existing_user = User.query.filter_by(email=email).first()
     if existing_user:
         return jsonify({'message': 'User already exists. Please log in.'}), 400
@@ -744,33 +842,44 @@ def register():
     # Hash the password
     hashed_password = generate_password_hash(password)
 
-    # Save user data temporarily and generate OTP
-    otp = random.randint(100000, 999999)  # Generate a 6-digit OTP
-    otp_store[email] = otp
+    # Generate OTP
+    otp = random.randint(100000, 999999)
 
-    # Simulate sending OTP (in production, use an email service)
-    print(f"OTP for {email}: {otp}")
+    # Store registration data temporarily until OTP verification
+    otp_store[email] = {
+        'first_name': first_name,
+        'last_name': last_name,
+        'password_hash': hashed_password,
+        'auth_provider': 'local',
+        'provider_user_id': None,
+        'otp': otp
+    }
+
+    # Send OTP email
     msg = Message(
         subject="OTP for ClassIQ",
         sender=("ClassIQ Support", app.config['MAIL_USERNAME']),
         recipients=[email]
     )
-    msg.body = f"{otp} is your OTP for ClassIQ account creation. Do not share with anyone."
+
+    msg.body = (
+        f"{otp} is your OTP for ClassIQ account creation.\n\n"
+        "Do not share this OTP with anyone."
+    )
 
     try:
         mail.send(msg)
-        print(f"OTP sent to email!")
+        print(f"OTP sent to {email}")
     except Exception as e:
-        print(f"Error sending email {e}")
-    # Temporarily store user data in memory until OTP is verified
-    otp_store[email] = {
-        'name': name,
-        'department': department,
-        'password': hashed_password,
-        'otp': otp
-    }
+        print(f"Error sending email: {e}")
+        return jsonify({'message': 'Failed to send OTP. Please try again.'}), 500
 
-    return jsonify({'message': 'Registration successful. OTP sent to email.'}), 200
+    return jsonify({
+        'message': 'OTP sent to your email.'
+    }), 200
+
+
+
 
 @app.route('/register_student', methods=['POST'])
 def register_student():
@@ -841,33 +950,43 @@ def resend_otp():
         return jsonify({'message': 'Email not found. Please register again.'}), 400
 
 
-
 @app.route('/verify-otp', methods=['POST'])
 def verify_otp():
-    data = request.json
+    data = request.get_json()
+
     email = data.get('email')
     otp = int(data.get('otp'))
 
-    # Check if the OTP matches
+    # Check if OTP exists and matches
     if email in otp_store and otp_store[email]['otp'] == otp:
-        # Save the user to the database
+
+        # Get temporary user data
         user_data = otp_store[email]
+
+        # Create user record
         new_user = User(
+            first_name=user_data['first_name'],
+            last_name=user_data['last_name'],
             email=email,
-            name=user_data['name'],
-            department=user_data['department'],
-            password=user_data['password']
+            password_hash=user_data['password_hash'],
+            auth_provider='local',
+            provider_user_id=None
         )
+
         db.session.add(new_user)
         db.session.commit()
 
-        # Remove OTP and temporary data after successful verification
+        # Remove temporary OTP data
         del otp_store[email]
 
-        return jsonify({'message': 'OTP verified successfully!'}), 200
-    else:
-        return jsonify({'message': 'Invalid OTP. Please try again.'}), 400
+        return jsonify({
+            'message': 'OTP verified successfully! Account created.'
+        }), 200
 
+    else:
+        return jsonify({
+            'message': 'Invalid OTP. Please try again.'
+        }), 400
 
 
 @app.route('/verify-otp_student', methods=['POST'])
