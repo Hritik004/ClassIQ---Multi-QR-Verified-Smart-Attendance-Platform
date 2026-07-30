@@ -9,7 +9,6 @@ import string, os
 from datetime import datetime
 import pymysql
 from dotenv import load_dotenv
-import os
 from sqlalchemy import text
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
@@ -212,13 +211,20 @@ def dashboard():
     # Otherwise, show the normal public/landing dashboard page
     return render_template('dashboard.html')
 
-#from flask import render_template
-@app.route('/logout_student')
-def logout_student():
-    # Clear the session
+
+
+
+@app.route('/logout')
+def logout():
+    # Clears all data from the user's cookie (user_id, auth_provider, etc.)
+    #flash("You have been successfully logged out.")
     session.clear()
-    # Redirect back to login page
-    return redirect(url_for('login_student'))
+
+    # Optional: Flash a message to show on the login screen
+
+
+    # Redirect back to the login page
+    return redirect(url_for('dashboard'))
 
 
 @app.route('/login',methods=['GET'])
@@ -244,7 +250,8 @@ def dashboard_user():
         text("""
             SELECT
                 id,
-                name
+                name,
+                allowed_domain
             FROM classrooms
             WHERE faculty_id = :uid
             ORDER BY name
@@ -330,12 +337,15 @@ def login():
             "message": "Invalid password"
         }), 401
 
+    session.pop('_flashes', None)
 
     # Create login session
     session['user_id'] = user.id
     session['email'] = user.email
     session['name'] = user.first_name
 
+
+    #flash("You have been successfully logged in.")
 
     return jsonify({
         "success": True,
@@ -349,17 +359,6 @@ def login():
 
 
 
-
-
-@app.route('/logout')
-def logout():
-    # Clear all data from the current user's session
-    session.clear()
-    # Optional: Send a success message to the login page
-    flash("You have been logged out successfully.", "success")
-
-    # Redirect to your login route (ensure your login function is named 'login')
-    return redirect(url_for('login_student'))
 
 
 
@@ -410,6 +409,8 @@ def google_login():
             user.last_name = last_name
             db.session.commit()
 
+        session.pop('_flashes', None)
+
         # 4. Create Session
         session['user_id'] = user.id
         session['email'] = user.email
@@ -432,7 +433,6 @@ def google_login():
 
 
 from flask import request, redirect, session, flash
-from sqlalchemy import text
 
 @app.route('/create_classroom', methods=['POST'])
 def create_classroom():
@@ -440,16 +440,19 @@ def create_classroom():
         return redirect('/login')
 
     class_name = request.form.get('name', '').strip()
+    allowed_domain = request.form.get('allowed_domain', '').strip()
 
     if class_name:
         db.session.execute(
             text("""
-                INSERT INTO classrooms (name, faculty_id)
-                VALUES (:name, :faculty_id)
+                INSERT INTO classrooms (name, faculty_id, allowed_domain)
+                VALUES (:name, :faculty_id, :allowed_domain)
             """),
             {
                 "name": class_name,
-                "faculty_id": session['user_id']
+                "faculty_id": session['user_id'],
+                # Save as NULL in the database if the field was left empty
+                "allowed_domain": allowed_domain if allowed_domain else None
             }
         )
         db.session.commit()
@@ -467,20 +470,41 @@ def join_classroom():
     if classroom_id and classroom_id.isdigit():
         cid = int(classroom_id)
 
-        # 1. Fetch classroom details to check who created it
+        # 1. Fetch classroom details, now including the allowed_domain
         classroom = db.session.execute(
-            text("SELECT id, faculty_id FROM classrooms WHERE id = :cid"),
+            text("SELECT id, faculty_id, allowed_domain FROM classrooms WHERE id = :cid"),
             {"cid": cid}
         ).mappings().fetchone()
 
         if classroom:
-            # 2. THE LOGIC: Block user if they are the creator/faculty of this classroom
+            # 2. Block user if they are the creator/faculty of this classroom
             if classroom['faculty_id'] == session['user_id']:
-                # Action blocked: User cannot join their own class
-                # (Optional: You could use flash('You cannot join your own class.') here)
+                flash('You cannot join your own class.')
                 return redirect('/dashboard_user')
 
-            # 3. Otherwise, proceed to enroll the student
+            # 3. Check domain restriction if an allowed_domain is set
+            allowed_domain = classroom.get('allowed_domain')
+            if allowed_domain:
+                # Fetch the student's email to verify (Assumes your table is 'users' and column is 'email')
+                student = db.session.execute(
+                    text("SELECT email FROM users WHERE id = :sid"),
+                    {"sid": session['user_id']}
+                ).mappings().fetchone()
+
+                if student and student['email']:
+                    student_email = student['email'].lower()
+                    # Ensure the domain starts with '@' for an exact match (handles if faculty typed 'university.edu' instead of '@university.edu')
+                    domain_to_check = allowed_domain.lower() if allowed_domain.startswith('@') else f"@{allowed_domain.lower()}"
+
+                    if not student_email.endswith(domain_to_check):
+                        # Action blocked: Student's email domain does not match
+                        flash('Your email domain is not authorized for this class.')
+                        return redirect('/dashboard_user')
+                else:
+                    # Failsafe: If no email is found for the user, block the join
+                    return redirect('/dashboard_user')
+
+            # 4. Otherwise, proceed to enroll the student
             db.session.execute(
                 text("""
                     INSERT IGNORE INTO classroom_students (classroom_id, student_id)
@@ -494,8 +518,6 @@ def join_classroom():
             db.session.commit()
 
     return redirect('/dashboard_user')
-
-
 
 
 @app.route('/delete_classroom', methods=['POST'])
@@ -904,6 +926,14 @@ def leave_classroom():
 
 #     # 'codes' now holds the filenames; pass to template
 #     return render_template("take_attendance.html", filenames=codes, table_name=table_name, today_col=today_col,course_id=n)
+
+#-------------------30-07-26-10:23s<
+
+@app.route('/take_attendance')
+def take_attendance():
+    return render_template("take_attendance.html")
+
+#-------------------30-07-26-10:23e
 
 # @app.route('/delete', methods=['POST'])
 # def delete_original_codes():
