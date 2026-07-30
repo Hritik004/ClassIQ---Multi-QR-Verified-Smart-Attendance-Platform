@@ -258,6 +258,9 @@
 
 
 
+
+
+
   /* ---------------- settings ---------------- */
   .settings-grid{display:grid;grid-template-columns:1fr;gap:20px;max-width:640px;}
   .settings-card{background:var(--card);border:1px solid var(--hair);border-radius:18px;padding:26px;}
@@ -375,6 +378,13 @@
     </div>
   </aside>
 
+
+
+
+  {% include '_flash.html' %}
+
+
+
   <!-- ---------------- MAIN ---------------- -->
   <main class="main">
 
@@ -453,6 +463,14 @@
                 </div>
                 <h4>{{ c.name }}</h4>
                 <div class="meta">Class ID: {{ c.id }}</div>
+
+                <!-- Display Domain if it exists -->
+                {% if c.allowed_domain %}
+                  <div class="meta" style="margin-top: 4px;">
+                    Domain Restriction: <code style="font-family:var(--font-mono); color:var(--violet-3);">{{ c.allowed_domain }}</code>
+                  </div>
+                {% endif %}
+
                 <div class="row-actions">
                   <button class="primary" onclick="showToast('Starting session for {{ c.name }}')">Start session</button>
                   <button class="secondary" onclick="showToast('Opening roster for {{ c.name }}')">View roster</button>
@@ -564,6 +582,13 @@
         <label for="newClassName">Class Name</label>
         <input type="text" id="newClassName" name="name" placeholder="e.g. Data Structures — Sec A" required>
       </div>
+
+      <!-- New Optional Domain Field -->
+      <div class="field">
+        <label for="allowedDomain">Student Email Domain (Optional)</label>
+        <input type="text" id="allowedDomain" name="allowed_domain" placeholder="e.g. @university.edu">
+      </div>
+
       <div class="m-actions">
         <button type="button" class="cancel" onclick="closeModal('createModal')">Cancel</button>
         <button type="submit" class="confirm">Create class</button>
