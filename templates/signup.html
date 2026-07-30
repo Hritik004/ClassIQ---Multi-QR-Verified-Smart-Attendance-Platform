@@ -493,11 +493,13 @@
     });
   }
 
+
   // Initialize Google Auth
   function initGoogle() {
     google.accounts.id.initialize({
       client_id: "593311499357-ehphsm15aei4bvlvtj1443f35o2opopf.apps.googleusercontent.com",
-      callback: handleGoogleResponse
+      callback: handleGoogleResponse,
+      auto_select: true // 1. ADD THIS: Tells Google to auto-login returning users
     });
 
     const googleBtnContainer = document.getElementById('google-btn-container');
@@ -511,7 +513,32 @@
         }
       );
     }
+
+    // 2. ADD THIS: Triggers the seamless One Tap slide-in prompt
+    google.accounts.id.prompt();
   }
+
+
+
+//   // Initialize Google Auth
+//   function initGoogle() {
+//     google.accounts.id.initialize({
+//       client_id: "593311499357-ehphsm15aei4bvlvtj1443f35o2opopf.apps.googleusercontent.com",
+//       callback: handleGoogleResponse
+//     });
+
+//     const googleBtnContainer = document.getElementById('google-btn-container');
+//     if (googleBtnContainer) {
+//       google.accounts.id.renderButton(
+//         googleBtnContainer,
+//         {
+//           theme: 'outline',
+//           size: 'large',
+//           width: googleBtnContainer.offsetWidth
+//         }
+//       );
+//     }
+//   }
 
   async function handleGoogleResponse(response) {
     const id_token = response.credential;

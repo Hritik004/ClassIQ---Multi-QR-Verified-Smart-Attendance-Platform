@@ -267,11 +267,21 @@
     showToast('Password reset link sent if the email exists.');
   });
 
-  // Initialize Google Auth
+
+
+
+
+// Initialize Google Auth
   function initGoogle() {
     google.accounts.id.initialize({
       client_id: "593311499357-ehphsm15aei4bvlvtj1443f35o2opopf.apps.googleusercontent.com",
-      callback: handleGoogleResponse
+      callback: handleGoogleResponse,
+
+      // Automatically log in returning users without them clicking the button
+      auto_select: true,
+
+      // Use the browser's native UI instead of a separate popup window
+      use_fedcm_for_prompt: true
     });
 
     const googleBtnContainer = document.getElementById('google-btn-container');
@@ -285,7 +295,13 @@
         }
       );
     }
+
+    // ADD THIS LINE: This actually triggers the One Tap popup to display
+    google.accounts.id.prompt();
   }
+
+
+
 
   async function handleGoogleResponse(response) {
     const id_token = response.credential;

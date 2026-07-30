@@ -229,8 +229,8 @@
   }
   .empty-state .em-ic{font-family:var(--font-mono);font-size:22px;color:var(--violet-2);margin-bottom:10px;}
 
-  
-  
+
+
   .top-row-right {
     display: flex;
     align-items: center;
@@ -254,8 +254,8 @@
     background: var(--rose);
     color: #fff;
   }
-  
-  
+
+
 
 
   /* ---------------- settings ---------------- */
@@ -370,7 +370,7 @@
           <div class="name">{{ user.first_name }} {{ user.last_name if user.last_name else '' }}</div>
           <div class="sub">{{ user.email }}</div>
         </div>
-        <a href="/login" class="logout" title="Log out">⏻</a>
+        <a href="/logout" class="logout" title="Log out">⏻</a>
       </div>
     </div>
   </aside>
@@ -442,9 +442,9 @@
                   </div>
                   <div class="top-row-right">
                     <span class="code">#ID-{{ c.id }}</span>
-                    <button 
-                      type="button" 
-                      class="btn-icon-danger" 
+                    <button
+                      type="button"
+                      class="btn-icon-danger"
                       title="Delete Class"
                       onclick="openDeleteModal('{{ c.id }}', '{{ c.name|e }}')">
                       ✕
@@ -542,7 +542,7 @@
         <div class="settings-card danger-card">
           <h3>Session Info</h3>
           <div class="desc">Account Provider: {{ user.auth_provider }}</div>
-          <a href="/login" class="btn-danger" style="display:inline-block; text-align:center;">Log out</a>
+          <a href="/logout" class="btn-danger" style="display:inline-block; text-align:center;">Log out</a>
         </div>
       </div>
     </section>
@@ -558,7 +558,7 @@
       <button type="button" class="close" onclick="closeModal('createModal')">✕</button>
     </div>
     <div class="m-sub">Create a new class where you will be assigned as faculty.</div>
-    
+
     <form action="/create_classroom" method="POST">
       <div class="field">
         <label for="newClassName">Class Name</label>
@@ -580,7 +580,7 @@
       <button type="button" class="close" onclick="closeModal('joinModal')">✕</button>
     </div>
     <div class="m-sub">Enter the numerical Class ID provided by your instructor.</div>
-    
+
     <form action="/join_classroom" method="POST">
       <div class="field">
         <label for="joinCode">Class ID</label>
@@ -603,14 +603,14 @@
       <h3 style="color: var(--rose);">Delete Class</h3>
       <button type="button" class="close" onclick="closeModal('deleteModal')">✕</button>
     </div>
-    
+
     <div class="m-sub" style="margin-bottom: 20px; color: var(--ink);">
       Are you sure you want to delete <b id="deleteClassNameText"></b>? This will erase all attendance records permanently.
     </div>
-    
+
     <form action="/delete_classroom" method="POST">
       <input type="hidden" name="classroom_id" id="deleteClassroomId">
-      
+
       <div class="m-actions">
         <button type="button" class="cancel" onclick="closeModal('deleteModal')">Cancel</button>
         <button type="submit" class="confirm-danger">Delete Permanently</button>
