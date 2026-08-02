@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ classroom.name }} — Class History</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --violet-1:#6a5ff0;
+    --violet-2:#8b5cf6;
+    --violet-3:#4f46e5;
+    --ink:#211f36;
+    --muted:#6b6885;
+    --card:#ffffff;
+    --hair:rgba(33,31,54,0.08);
+    --mint:#00c896;
+    --mint-bg:rgba(0,200,150,0.12);
+    --rose:#f0556a;
+    --rose-bg:rgba(240,85,106,0.12);
+    --font-display:'Fraunces', serif;
+    --font-body:'Inter', sans-serif;
+    --font-mono:'JetBrains Mono', monospace;
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box;}
+
+  body{
+    font-family:var(--font-body);
+    color:var(--ink);
+    min-height:100vh;
+    background:
+      radial-gradient(1100px 600px at 90% -10%, rgba(139,92,246,0.12), transparent),
+      radial-gradient(900px 500px at -10% 30%, rgba(106,95,240,0.10), transparent),
+      #f7f6fb;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+    padding-bottom:60px;
+  }
+  a{color:inherit;text-decoration:none;}
+  :focus-visible{outline:2px solid var(--violet-1);outline-offset:3px;}
+
+  /* ---------------- topbar ---------------- */
+  .navbar{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:20px 36px;margin-bottom:8px;
+  }
+  .logo{
+    font-family:var(--font-display);font-weight:600;font-size:20px;
+    display:flex;align-items:center;gap:9px;letter-spacing:-0.01em;
+  }
+  .logo .dot{
+    width:9px;height:9px;border-radius:2px;
+    background:linear-gradient(135deg,var(--violet-1),var(--mint));
+    flex-shrink:0;
+  }
+  .navbar .who{
+    font-size:13px;color:var(--muted);
+    display:inline-flex;align-items:center;gap:6px;
+    padding:9px 16px;border-radius:100px;border:1px solid var(--hair);background:var(--card);
+  }
+  .navbar .who strong{color:var(--ink);font-weight:600;}
+  .navbar .who .role-pill{
+    font-family:var(--font-mono);font-size:10.5px;font-weight:600;
+    text-transform:uppercase;letter-spacing:0.05em;color:var(--violet-3);
+    background:rgba(106,95,240,0.08);padding:3px 9px;border-radius:100px;
+  }
+
+  /* ---------------- container ---------------- */
+  .container{max-width:1100px;margin:0 auto;padding:0 24px;}
+
+  .page-header{
+    display:flex;justify-content:space-between;align-items:flex-end;
+    gap:16px;margin:28px 0 30px;flex-wrap:wrap;
+  }
+  .page-title .tag{
+    font-family:var(--font-mono);font-size:11.5px;color:var(--violet-3);
+    text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;display:inline-block;
+    background:rgba(106,95,240,0.08);padding:5px 12px;border-radius:100px;
+  }
+  .page-title h1{
+    font-family:var(--font-display);font-size:2rem;font-weight:600;
+    letter-spacing:-0.01em;margin-bottom:6px;
+  }
+  .page-title .sub{color:var(--muted);font-size:0.9rem;font-family:var(--font-mono);}
+
+  .back-link{
+    font-size:13.5px;font-weight:600;color:var(--muted);
+    display:inline-flex;align-items:center;gap:6px;
+    padding:9px 16px;border-radius:100px;border:1px solid var(--hair);background:var(--card);
+    transition:color .15s ease, border-color .15s ease;
+  }
+  .back-link:hover{color:var(--violet-3);border-color:rgba(106,95,240,0.3);}
+
+  /* ---------------- stat cards ---------------- */
+  .stats-grid{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
+    gap:16px;margin-bottom:28px;
+  }
+  .stat-card{
+    background:var(--card);border:1px solid var(--hair);border-radius:20px;
+    padding:22px 24px;box-shadow:0 12px 30px rgba(76,63,180,0.06);
+    position:relative;overflow:hidden;
+  }
+  .stat-card::before{
+    content:"";position:absolute;top:0;left:0;right:0;height:3px;
+    background:linear-gradient(90deg,var(--violet-1),var(--mint));
+    opacity:0.9;
+  }
+  .stat-title{
+    font-family:var(--font-mono);font-size:11px;color:var(--muted);
+    text-transform:uppercase;letter-spacing:0.07em;margin-bottom:10px;
+  }
+  .stat-value{
+    font-family:var(--font-display);font-size:2.1rem;font-weight:600;letter-spacing:-0.01em;
+  }
+  .stat-value.good{color:var(--mint);}
+  .stat-value.bad{color:var(--rose);}
+  .stat-value.admin{color:var(--violet-3);font-size:1.3rem;}
+
+  /* ---------------- table card ---------------- */
+  .table-container{
+    background:var(--card);border:1px solid var(--hair);border-radius:22px;
+    box-shadow:0 16px 40px rgba(76,63,180,0.07);overflow:hidden;
+  }
+  .table-header{
+    padding:20px 26px;border-bottom:1px solid var(--hair);
+    display:flex;align-items:center;justify-content:space-between;
+    background:rgba(106,95,240,0.03);
+  }
+  .table-header h2{
+    font-family:var(--font-display);font-size:1.15rem;font-weight:600;letter-spacing:-0.01em;
+  }
+  .table-header .count-pill{
+    font-family:var(--font-mono);font-size:11px;color:var(--violet-3);
+    background:rgba(106,95,240,0.08);padding:4px 11px;border-radius:100px;font-weight:600;
+  }
+
+  table{width:100%;border-collapse:collapse;}
+  th,td{padding:14px 26px;text-align:left;border-bottom:1px solid var(--hair);}
+  tr:last-child td{border-bottom:none;}
+  th{
+    font-family:var(--font-mono);font-size:10.5px;font-weight:600;color:var(--muted);
+    text-transform:uppercase;letter-spacing:0.06em;background:transparent;
+  }
+  td{font-size:14px;}
+  tbody tr{transition:background .15s ease;}
+  tbody tr:hover{background:rgba(106,95,240,0.035);}
+  td.session-id{font-family:var(--font-mono);color:var(--muted);}
+
+  .status-badge{
+    padding:4px 13px;border-radius:100px;font-size:12.5px;font-weight:600;
+    display:inline-flex;align-items:center;gap:6px;
+  }
+  .status-badge::before{content:"";width:6px;height:6px;border-radius:50%;}
+  .status-present{background:var(--mint-bg);color:#00976e;}
+  .status-present::before{background:var(--mint);}
+  .status-absent{background:var(--rose-bg);color:#c73a4c;}
+  .status-absent::before{background:var(--rose);}
+
+  .empty-state{padding:60px 24px;text-align:center;color:var(--muted);}
+  .empty-state .ic{
+    width:52px;height:52px;border-radius:16px;margin:0 auto 16px;
+    background:linear-gradient(135deg,var(--violet-1),var(--violet-3));
+    display:flex;align-items:center;justify-content:center;color:#fff;
+    font-family:var(--font-mono);font-size:18px;font-weight:600;
+  }
+  .empty-state p{font-size:14px;}
+
+  @media (max-width:640px){
+    .navbar{padding:16px 18px;flex-wrap:wrap;gap:10px;}
+    .container{padding:0 16px;}
+    .page-header{margin:22px 0 24px;}
+    th,td{padding:12px 16px;}
+    .table-header{padding:16px 18px;}
+  }
+</style>
+</head>
+<body>
+
+  <nav class="navbar">
+    <a href="/dashboard_user" class="logo"><span class="dot"></span>ClassIQ</a>
+    <div class="who">
+      Logged in as <strong>{{ user.name }}</strong>
+      <span class="role-pill">{% if is_teacher %}Faculty{% else %}Student{% endif %}</span>
+    </div>
+  </nav>
+
+  <div class="container">
+
+    <div class="page-header">
+      <div class="page-title">
+        <span class="tag">Class history</span>
+        <h1>{{ classroom.name }}</h1>
+        <div class="sub">Class ID #{{ classroom.id }}</div>
+      </div>
+      <a href="/dashboard_user" class="back-link">← Back to dashboard</a>
+    </div>
+
+    <!-- DYNAMIC SUMMARY CARDS -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-title">Total sessions held</div>
+        <div class="stat-value">{{ total_sessions }}</div>
+      </div>
+
+      {% if not is_teacher %}
+      <div class="stat-card">
+        <div class="stat-title">Sessions attended</div>
+        <div class="stat-value">{{ student_attended }}</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-title">Overall percentage</div>
+        <div class="stat-value {% if attendance_percentage >= 75.0 %}good{% else %}bad{% endif %}">
+          {{ attendance_percentage }}%
+        </div>
+      </div>
+      {% else %}
+      <div class="stat-card">
+        <div class="stat-title">Faculty status</div>
+        <div class="stat-value admin">Class Admin</div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- DYNAMIC TABLE -->
+    <div class="table-container">
+      <div class="table-header">
+        <h2>Session logs</h2>
+        {% if history %}<span class="count-pill">{{ history|length }} sessions</span>{% endif %}
+      </div>
+
+      {% if history %}
+      <table>
+        <thead>
+          <tr>
+            <th>Session ID</th>
+            <th>Date</th>
+            <th>Start time</th>
+            {% if is_teacher %}
+              <th>Total students present</th>
+            {% else %}
+              <th>Your status</th>
+            {% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for session in history %}
+          <tr>
+            <td class="session-id">#{{ session.session_id }}</td>
+            <td>{{ session.session_date }}</td>
+            <td>{{ session.start_time }}</td>
+
+            {% if is_teacher %}
+              <td><strong>{{ session.total_present }}</strong> attendees</td>
+            {% else %}
+              <td>
+                {% if session.my_status == 'Present' %}
+                  <span class="status-badge status-present">Present</span>
+                {% else %}
+                  <span class="status-badge status-absent">Absent</span>
+                {% endif %}
+              </td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state">
+        <div class="ic">–</div>
+        <p>No sessions have been conducted for this class yet.</p>
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+
+</body>
+</html>

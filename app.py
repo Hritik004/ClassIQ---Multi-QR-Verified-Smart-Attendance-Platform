@@ -702,6 +702,141 @@ def submit_scan_sequence():
 
 
 
+
+
+@app.route('/class_history/<int:class_id>')
+def class_history(class_id):
+    if 'user_id' not in session:
+        return redirect('/login')
+
+    user_id = session['user_id']
+
+    # 1. Fetch classroom details to check ownership
+    classroom = db.session.execute(
+        text("SELECT id, name, faculty_id FROM classrooms WHERE id = :cid"),
+        {"cid": class_id}
+    ).mappings().fetchone()
+
+    if not classroom:
+        flash("Classroom not found.")
+        return redirect('/dashboard_user')
+
+    # FIX 1: Safely compare IDs by casting to string to prevent int vs string mismatch
+    is_teacher = (str(classroom['faculty_id']) == str(user_id))
+
+    # 2. Get TOTAL SESSIONS held for this class till now
+    total_result = db.session.execute(
+        text("SELECT COUNT(id) AS total FROM class_sessions WHERE classroom_id = :cid"),
+        {"cid": class_id}
+    ).mappings().fetchone()
+
+    # FIX 3: Check explicitly for None rather than relying on truthiness
+    total_sessions_count = total_result['total'] if (total_result and total_result['total'] is not None) else 0
+
+    # Ensure user data matches your dashboard variables
+    user_data = {
+        'id': session.get('user_id'),
+        'first_name': session.get('name', 'User'),
+        'email': session.get('email')
+    }
+
+    # ==========================================
+    # TEACHER VIEW
+    # ==========================================
+    if is_teacher:
+        history_records = db.session.execute(
+            text("""
+                SELECT
+                    cs.id AS session_id,
+                    cs.session_date,
+                    cs.start_time,
+                    -- FIX 2: Count by student_id instead of id to prevent SQL errors
+                    COUNT(a.student_id) AS total_present
+                FROM class_sessions cs
+                LEFT JOIN attendance a
+                    ON cs.id = a.session_id AND a.status = 'Present'
+                WHERE cs.classroom_id = :cid
+                GROUP BY cs.id, cs.session_date, cs.start_time
+                ORDER BY cs.session_date DESC, cs.start_time DESC
+            """),
+            {"cid": class_id}
+        ).mappings().fetchall()
+
+        return render_template(
+            'class_history.html',
+            classroom=classroom,
+            is_teacher=True,
+            total_sessions=total_sessions_count,
+            history=history_records,
+            user=user_data
+        )
+
+    # ==========================================
+    # STUDENT VIEW
+    # ==========================================
+    else:
+        attended_result = db.session.execute(
+            text("""
+                SELECT COUNT(DISTINCT a.session_id) AS attended
+                FROM attendance a
+                JOIN class_sessions cs ON a.session_id = cs.id
+                WHERE cs.classroom_id = :cid
+                  AND a.student_id = :uid
+                  AND a.status = 'Present'
+            """),
+            {"cid": class_id, "uid": user_id}
+        ).mappings().fetchone()
+
+        # FIX 3: Check explicitly for None
+        student_attended_count = attended_result['attended'] if (attended_result and attended_result['attended'] is not None) else 0
+
+        attendance_percentage = (
+            round((student_attended_count / total_sessions_count) * 100, 2)
+            if total_sessions_count > 0 else 0.0
+        )
+
+        history_records = db.session.execute(
+            text("""
+                SELECT
+                    cs.id AS session_id,
+                    cs.session_date,
+                    cs.start_time,
+                    -- FIX 2: Check against student_id instead of id to prevent SQL errors
+                    IF(a.student_id IS NOT NULL, 'Present', 'Absent') AS my_status
+                FROM class_sessions cs
+                LEFT JOIN attendance a
+                    ON cs.id = a.session_id
+                    AND a.student_id = :uid
+                    AND a.status = 'Present'
+                WHERE cs.classroom_id = :cid
+                ORDER BY cs.session_date DESC, cs.start_time DESC
+            """),
+            {"uid": user_id, "cid": class_id}
+        ).mappings().fetchall()
+
+        return render_template(
+            'class_history.html',
+            classroom=classroom,
+            is_teacher=False,
+            total_sessions=total_sessions_count,
+            student_attended=student_attended_count,
+            attendance_percentage=attendance_percentage,
+            history=history_records,
+            user=user_data
+        )
+
+
+
+
+
+
+
+
+
+
+
+
+
 @app.route('/')
 def root():
     return redirect(url_for('dashboard'))

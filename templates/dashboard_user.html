@@ -463,7 +463,7 @@
                 <div class="row-actions">
                   <!-- Pass the user.id, c.id, and c.name to the JS function -->
                   <button class="primary" onclick="startClassSession('{{ user.id }}', '{{ c.id }}', '{{ c.name|escape }}')">Start session</button>
-                  <button class="secondary" onclick="showToast('Opening roster for {{ c.name }}')">View roster</button>
+                  <button class="secondary" onclick="window.location.href='/class_history/{{ c.id }}'">View history</button>
                 </div>
               </div>
             {% endfor %}
@@ -512,7 +512,7 @@
               </div>
               <div class="row-actions">
                 <button class="primary" onclick="window.location.href='/scan_attendance?class_id={{ c.id }}&class_name={{ c.name|urlencode }}'">Mark attendance</button>
-                <button class="secondary" onclick="showToast('Opening history for {{ c.name }}')">View history</button>
+                <button class="secondary" onclick="window.location.href='/class_history/{{ c.id }}'">View history</button>
               </div>
             </div>
           {% endfor %}
