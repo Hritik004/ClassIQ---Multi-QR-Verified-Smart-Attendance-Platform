@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClassIQ — Live QR Session</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --violet-1:#6a5ff0;
+    --violet-2:#8b5cf6;
+    --violet-3:#4f46e5;
+    --ink:#211f36;
+    --muted:#6b6885;
+    --card:#ffffff;
+    --hair:rgba(33,31,54,0.08);
+    --mint:#00c896;
+    --amber:#f5a524;
+    --rose:#f0556a;
+    --font-display:'Fraunces', serif;
+    --font-body:'Inter', sans-serif;
+    --font-mono:'JetBrains Mono', monospace;
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box;}
+
+  body{
+    font-family:var(--font-body);
+    color:var(--ink);
+    min-height:100vh;
+    background:
+      radial-gradient(1100px 600px at 90% -10%, rgba(139,92,246,0.12), transparent),
+      radial-gradient(900px 500px at -10% 30%, rgba(106,95,240,0.10), transparent),
+      #f7f6fb;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+    display:flex;flex-direction:column;
+  }
+  a{color:inherit;text-decoration:none;}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
+  :focus-visible{outline:2px solid var(--violet-1);outline-offset:3px;}
+
+  /* ---------------- topbar ---------------- */
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:20px 36px;
+  }
+  .logo{
+    font-family:var(--font-display);font-weight:600;font-size:20px;
+    display:flex;align-items:center;gap:9px;letter-spacing:-0.01em;
+  }
+  .logo .dot{
+    width:9px;height:9px;border-radius:2px;
+    background:linear-gradient(135deg,var(--violet-1),var(--mint));
+    flex-shrink:0;
+  }
+  .back-link{
+    font-size:13.5px;font-weight:600;color:var(--muted);
+    display:inline-flex;align-items:center;gap:6px;
+    padding:9px 16px;border-radius:100px;border:1px solid var(--hair);background:var(--card);
+    transition:color .15s ease, border-color .15s ease;
+  }
+  .back-link:hover{color:var(--violet-3);border-color:rgba(106,95,240,0.3);}
+
+  /* ---------------- main ---------------- */
+  .main{
+    flex:1;display:flex;align-items:center;justify-content:center;
+    padding:20px 24px 60px;
+  }
+
+  .seq-card{
+    background:var(--card);border:1px solid var(--hair);border-radius:24px;
+    padding:40px;width:100%;max-width:460px;
+    box-shadow:0 20px 50px rgba(76,63,180,0.08);
+    text-align:center;
+  }
+
+  .seq-card .tag{
+    font-family:var(--font-mono);font-size:11.5px;color:var(--violet-3);
+    text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;display:inline-block;
+    background:rgba(106,95,240,0.08);padding:5px 12px;border-radius:100px;
+  }
+  .seq-card h2{font-family:var(--font-display);font-size:1.5rem;font-weight:600;margin-bottom:6px;letter-spacing:-0.01em;}
+  .seq-card .sub{color:var(--muted);font-size:0.9rem;margin-bottom:26px;}
+
+  /* --- step dots --- */
+  .step-dots{display:flex;justify-content:center;gap:8px;margin-bottom:24px;}
+  .step-dot{
+    width:8px;height:8px;border-radius:50%;background:rgba(33,31,54,0.12);
+    transition:background .2s ease, transform .2s ease;
+  }
+  .step-dot.done{background:var(--mint);}
+  .step-dot.current{background:var(--violet-1);transform:scale(1.3);}
+
+  /* --- QR display --- */
+  .qr-stage{
+    position:relative;width:240px;height:240px;margin:0 auto 20px;
+  }
+  .qr-frame{
+    width:100%;height:100%;border-radius:20px;
+    background:#fff;border:1px solid var(--hair);
+    display:flex;align-items:center;justify-content:center;overflow:hidden;
+    box-shadow:0 10px 26px rgba(76,63,180,0.08);
+    position:relative;
+  }
+  .qr-frame img{width:100%;height:100%;object-fit:contain;padding:10px;
+    animation:fadeIn .3s ease;}
+  @keyframes fadeIn{from{opacity:0;transform:scale(0.96);}to{opacity:1;transform:scale(1);}}
+  .qr-fallback{
+    font-family:var(--font-mono);font-size:12px;color:var(--muted);padding:16px;
+  }
+  .qr-index-badge{
+    position:absolute;top:10px;right:10px;
+    font-family:var(--font-mono);font-size:11px;font-weight:600;color:#fff;
+    background:linear-gradient(135deg,var(--violet-1),var(--violet-3));
+    padding:4px 10px;border-radius:100px;
+    box-shadow:0 6px 14px rgba(106,95,240,0.3);
+  }
+
+  /* --- countdown ring around the frame --- */
+  .qr-stage svg.ring{
+    position:absolute;inset:-6px;transform:rotate(-90deg);
+    pointer-events:none;
+  }
+  .qr-stage svg.ring circle{
+    fill:none;stroke-width:4;
+  }
+  .qr-stage svg.ring .ring-bg{stroke:rgba(33,31,54,0.07);}
+  .qr-stage svg.ring .ring-fg{
+    stroke:url(#ringGradient);
+    stroke-linecap:round;
+    transition:stroke-dashoffset linear;
+  }
+
+  .timer-label{
+    font-family:var(--font-mono);font-size:12.5px;color:var(--muted);margin-bottom:26px;
+  }
+  .timer-label b{color:var(--violet-3);}
+
+  /* --- states --- */
+  #loadingState{display:none;padding:20px 0;}
+  #loadingState .spinner{
+    width:46px;height:46px;border-radius:50%;
+    border:4px solid rgba(106,95,240,0.15);border-top-color:var(--violet-1);
+    margin:0 auto 20px;animation:spin .8s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  #sequenceState{display:none;}
+
+  #doneState{display:none;}
+  #doneState .ic-big{
+    width:60px;height:60px;border-radius:16px;margin:0 auto 18px;
+    background:linear-gradient(135deg,var(--mint),#00a67e);
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;font-family:var(--font-mono);font-size:20px;font-weight:600;
+  }
+
+  #errorState{display:none;}
+  #errorState .ic-big{
+    width:60px;height:60px;border-radius:16px;margin:0 auto 18px;
+    background:linear-gradient(135deg,var(--rose),#d63d52);
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;font-family:var(--font-mono);font-size:20px;font-weight:600;
+  }
+
+  .btn-primary{
+    font-weight:600;font-size:13.5px;color:#fff;
+    background:linear-gradient(135deg,var(--violet-1),var(--violet-3));
+    padding:12px 22px;border-radius:100px;
+    display:inline-flex;align-items:center;gap:8px;
+    box-shadow:0 10px 22px rgba(106,95,240,0.26);
+    transition:transform .18s ease, box-shadow .18s ease;
+  }
+  .btn-primary:hover{transform:translateY(-1px);box-shadow:0 14px 28px rgba(106,95,240,0.34);}
+  .btn-ghost{
+    font-weight:600;font-size:13px;color:var(--muted);
+    border:1px solid var(--hair);padding:11px 20px;border-radius:100px;
+    background:rgba(33,31,54,0.03);
+  }
+  .btn-ghost:hover{color:var(--ink);}
+  .btn-row{display:flex;gap:12px;justify-content:center;}
+
+  @media (max-width:520px){
+    .topbar{padding:16px 18px;}
+    .seq-card{padding:28px 22px;}
+    .qr-stage{width:200px;height:200px;}
+  }
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <a href="/dashboard" class="logo"><span class="dot"></span>ClassIQ</a>
+    <a href="/dashboard" class="back-link">← Back to dashboard</a>
+  </div>
+
+  <main class="main">
+    <div class="seq-card">
+
+      <span class="tag" id="stageTag">Live QR session</span>
+      <h2 id="className">{{ class_name or 'Attendance Session' }}</h2>
+      <div class="sub" id="subLine">Rotating codes refresh automatically — keep this screen visible.</div>
+
+      <!-- ===== LOADING ===== -->
+      <div id="loadingState">
+        <div class="spinner"></div>
+        <div class="timer-label">Fetching QR codes…</div>
+      </div>
+
+      <!-- ===== SEQUENCE ===== -->
+      <div id="sequenceState">
+        <div class="step-dots" id="stepDots"></div>
+
+        <div class="qr-stage">
+          <svg class="ring" viewBox="0 0 252 252">
+            <defs>
+              <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#6a5ff0"/>
+                <stop offset="100%" stop-color="#00c896"/>
+              </linearGradient>
+            </defs>
+            <circle class="ring-bg" cx="126" cy="126" r="118"></circle>
+            <circle class="ring-fg" id="ringFg" cx="126" cy="126" r="118"></circle>
+          </svg>
+          <div class="qr-frame" id="qrFrame">
+            <div class="qr-fallback">Loading…</div>
+          </div>
+          <div class="qr-index-badge" id="qrIndexBadge">1 / 4</div>
+        </div>
+
+        <div class="timer-label" id="timerLabel">Next code in <b id="timerSeconds">3</b>s</div>
+      </div>
+
+      <!-- ===== DONE ===== -->
+      <div id="doneState">
+        <div class="ic-big">✓</div>
+        <h2>Sequence complete</h2>
+        <div class="sub">All codes have been shown for this session.</div>
+        <div class="btn-row">
+          <button class="btn-ghost" onclick="window.location.href='/dashboard'">Back to dashboard</button>
+          <button class="btn-primary" onclick="restartSequence()">↻ Run again</button>
+        </div>
+      </div>
+
+      <!-- ===== ERROR ===== -->
+      <div id="errorState">
+        <div class="ic-big">!</div>
+        <h2>Couldn't load QR codes</h2>
+        <div class="sub" id="errorMsg">Something went wrong. Please try again.</div>
+        <div class="btn-row">
+          <button class="btn-ghost" onclick="window.location.href='/dashboard'">Back</button>
+          <button class="btn-primary" onclick="loadSequence()">Try again</button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+<script>
+  // ---- context passed in from the server-rendered template ----
+  const USER_ID  = "{{ user.id }}";
+  const CLASS_ID = "{{ class_id }}";
+  const CLASS_NAME = {{ (class_name or 'Attendance Session')|tojson }};
+
+  // Durations in ms: first 3 codes 3s each, last one 5s.
+  const DURATIONS = [2000, 2000, 2000, 2000];
+  const TOTAL_STEPS = DURATIONS.length;
+
+  let qrCodes = [];       // populated from backend
+  let currentStep = 0;
+  let stepStartTime = 0;
+  let rafId = null;
+  let ringCircumference = 2 * Math.PI * 118;
+
+  const els = {
+    loading:  document.getElementById('loadingState'),
+    sequence: document.getElementById('sequenceState'),
+    done:     document.getElementById('doneState'),
+    error:    document.getElementById('errorState'),
+    ringFg:   document.getElementById('ringFg'),
+    qrFrame:  document.getElementById('qrFrame'),
+    qrIndexBadge: document.getElementById('qrIndexBadge'),
+    timerSeconds: document.getElementById('timerSeconds'),
+    stepDots: document.getElementById('stepDots'),
+  };
+
+  els.ringFg.style.strokeDasharray = ringCircumference;
+
+  function showState(name){
+    ['loading','sequence','done','error'].forEach(k=>{
+      els[k].style.display = (k === name) ? 'block' : 'none';
+    });
+  }
+
+  function buildDots(){
+    els.stepDots.innerHTML = '';
+    for (let i = 0; i < TOTAL_STEPS; i++){
+      const dot = document.createElement('span');
+      dot.className = 'step-dot';
+      dot.id = 'dot-' + i;
+      els.stepDots.appendChild(dot);
+    }
+  }
+
+  function updateDots(active){
+    for (let i = 0; i < TOTAL_STEPS; i++){
+      const dot = document.getElementById('dot-' + i);
+      dot.classList.remove('done', 'current');
+      if (i < active) dot.classList.add('done');
+      else if (i === active) dot.classList.add('current');
+    }
+  }
+
+  function renderQrFrame(item){
+    if (!item) {
+      els.qrFrame.innerHTML = `<div class="qr-fallback">No QR data for this step.</div>`;
+      return;
+    }
+    if (item.qr_image_url) {
+      els.qrFrame.innerHTML = `<img src="${item.qr_image_url}" alt="QR code ${currentStep + 1}">`;
+    } else if (item.qr_base64) {
+      els.qrFrame.innerHTML = `<img src="data:image/png;base64,${item.qr_base64}" alt="QR code ${currentStep + 1}">`;
+    } else {
+      els.qrFrame.innerHTML = `<div class="qr-fallback">${item.qr_data || item.code || 'QR code unavailable'}</div>`;
+    }
+  }
+
+  function startStep(index){
+    currentStep = index;
+    stepStartTime = performance.now();
+    const duration = DURATIONS[index];
+
+    els.qrIndexBadge.textContent = (index + 1) + ' / ' + TOTAL_STEPS;
+    updateDots(index);
+    renderQrFrame(qrCodes[index]);
+
+    cancelAnimationFrame(rafId);
+    tick(duration);
+  }
+
+  function tick(duration){
+    const now = performance.now();
+    const elapsed = now - stepStartTime;
+    const remaining = Math.max(0, duration - elapsed);
+    const progress = Math.min(1, elapsed / duration);
+
+    els.ringFg.style.strokeDashoffset = ringCircumference * (1 - progress);
+    els.timerSeconds.textContent = Math.ceil(remaining / 1000);
+
+    if (elapsed >= duration) {
+      if (currentStep + 1 < TOTAL_STEPS) {
+        startStep(currentStep + 1);
+      } else {
+        showState('done');
+      }
+      return;
+    }
+    rafId = requestAnimationFrame(() => tick(duration));
+  }
+
+  function loadSequence(){
+    showState('loading');
+
+    fetch('/qr_sequence', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: USER_ID,
+        class_id: CLASS_ID
+      })
+    })
+    .then(res => {
+      if (!res.ok) throw new Error('Server responded with ' + res.status);
+      return res.json();
+    })
+    .then(data => {
+      // Expected shape: { qr_codes: [ {qr_image_url|qr_base64|qr_data, code?}, ... ] }
+      const codes = data.qr_codes || data.codes || [];
+      if (!Array.isArray(codes) || codes.length === 0) {
+        throw new Error('No QR codes returned for this session.');
+      }
+      // Pad/truncate to exactly 4 so the fixed duration schedule lines up.
+      qrCodes = codes.slice(0, TOTAL_STEPS);
+      while (qrCodes.length < TOTAL_STEPS) qrCodes.push(null);
+
+      buildDots();
+      showState('sequence');
+      startStep(0);
+    })
+    .catch(err => {
+      document.getElementById('errorMsg').textContent = err.message || 'Something went wrong. Please try again.';
+      showState('error');
+    });
+  }
+
+  function restartSequence(){
+    cancelAnimationFrame(rafId);
+    loadSequence();
+  }
+
+  loadSequence();
+</script>
+
+</body>
+</html>

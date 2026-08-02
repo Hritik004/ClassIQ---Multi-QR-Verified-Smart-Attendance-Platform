@@ -12,7 +12,10 @@ from dotenv import load_dotenv
 from sqlalchemy import text
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
-
+import math
+from datetime import datetime, timedelta
+from sqlalchemy import text
+from itsdangerous import URLSafeSerializer
 
 
 
@@ -85,116 +88,9 @@ class User(db.Model):
     )
 
 
-
-# Define the Student_info table
-class StudentInfo(db.Model):
-    __tablename__ = "student_info"
-
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    name = db.Column(db.String(100), nullable=False)
-    roll = db.Column(db.Integer, unique=True, nullable=False)
-    dept = db.Column(db.String(50), nullable=False)
-    college_email = db.Column(db.String(100), unique=True, nullable=False)
-    password = db.Column(db.String(255), nullable=False)  # ✅ updated
-
-
-
-def get_connection_classrooms():
-    return pymysql.connect(
-        host="classiq.mysql.pythonanywhere-services.com",
-        user="classiq",
-        password=PYMYSQL_KEY,
-        database="classiq$classrooms",
-        cursorclass=pymysql.cursors.DictCursor
-    )
-# Simulated OTP store
 otp_store = {}
 
-ALLOWED_IPS = ["136.232.2.201", "45.112.71.121"]
 
-def ip_whitelist(func):
-    def wrapper(*args, **kwargs):
-        if request.headers.getlist("X-Forwarded-For"):
-            client_ip=request.headers.getlist("X-Forwarded-For")[0]
-        else:
-            client_ip=request.remote_addr
-        print(f"client ip seen by flask: {client_ip}")
-        if client_ip not in ALLOWED_IPS:
-            abort(403)
-        return func(*args, **kwargs)
-    wrapper.__name__=func.__name__
-    return wrapper
-
-@app.route('/ipwhitelist')
-@ip_whitelist
-def ipwhitelist():
-    return "<h1>This is ipwhitelist page</h1>"
-
-
-@app.route('/scanner/<int:course_id>')
-def open_scanner(course_id):
-    return render_template("scanner.html", course_id=course_id)
-
-@app.route("/save", methods=["POST"])
-def save_data():
-    if 'roll_no' not in session:
-      return "You need to be logged in"
-    try:
-      data = request.get_json()
-      course_id = data.get('course_id')
-      qr_codes_set = set(data.get('qr_codes', []))
-    except Exception as e:
-        return f"Error: could not collect course and qr details, {e}"
-    table_name = f"classroom{course_id}"   # can be dynamic if needed
-    roll_no = session.get('roll_no')
-
-
-    today_str = datetime.now().strftime("%d.%m.%y")
-
-    try:
-        conn = get_connection_classrooms()
-        with conn.cursor() as cur:
-            # Fetch original value
-            cur.execute(f"SELECT `original` FROM `{table_name}` WHERE `is_master`=1 LIMIT 1;")
-            row = cur.fetchone()
-            if not row or row["original"] is None:
-                return "attendance has not started yet code 0"
-            print(f"original extracted: {row["original"]}")
-            original_set = set(row["original"].split(","))
-
-            # Compare lists
-            if original_set != qr_codes_set:
-                return "Attendance failed due to qr mismatch"
-
-            # Check if today's column exists
-            cur.execute(f"SHOW COLUMNS FROM `{table_name}` LIKE %s", (today_str,))
-            col_exists = cur.fetchone()
-            if not col_exists:
-                return "attendance has not started yet code 1"
-
-            # Get current value for this roll_no
-            cur.execute(f"SELECT `current` FROM `{table_name}` WHERE `roll_no` = %s", (roll_no,))
-            student = cur.fetchone()
-            if not student:
-                #return "You are not a part of this classroom"
-                return jsonify(success=False, error="You are not a part of this classroom"), 500
-
-            new_current = student["current"] + 1 if student["current"] else 1
-
-            # Update both current and today's date column
-            cur.execute(
-                f"UPDATE `{table_name}` SET `current` = %s, `{today_str}` = %s WHERE `roll_no` = %s",
-                (new_current, new_current, roll_no)
-            )
-            conn.commit()
-
-        #return "Attendance marked successfully"
-        return jsonify(success=True, message="Attendance marked successfully"), 200
-
-    except Exception as e:
-        return f"Error: {str(e)} [500]"
-    finally:
-        conn.close()
 
 @app.route('/signup')
 def signup_faculty():
@@ -216,14 +112,7 @@ def dashboard():
 
 @app.route('/logout')
 def logout():
-    # Clears all data from the user's cookie (user_id, auth_provider, etc.)
-    #flash("You have been successfully logged out.")
     session.clear()
-
-    # Optional: Flash a message to show on the login screen
-
-
-    # Redirect back to the login page
     return redirect(url_for('dashboard'))
 
 
@@ -432,8 +321,6 @@ def google_login():
 
 
 
-from flask import request, redirect, session, flash
-
 @app.route('/create_classroom', methods=['POST'])
 def create_classroom():
     if 'user_id' not in session:
@@ -570,442 +457,249 @@ def leave_classroom():
 
 
 
-# @app.route('/student/dashboard')
-# def student_dashboard():
-#     roll_no = session.get("roll_no")  # ✅ read roll_no from session
-#     if not roll_no:
-#         return redirect(url_for("login_student"))  # ✅ must be function name, not HTML file
+import io
+import base64
+import uuid
 
-#     # --- First connection: enrolled courses ---
-#     connection = pymysql.connect(
-#         host='classiq.mysql.pythonanywhere-services.com',
-#         user='classiq',
-#         password='pythonanywhereman.com',
-#         database='classiq$accounts',
-#         cursorclass=pymysql.cursors.DictCursor
-#     )
-
-#     with connection.cursor() as cursor:
-#         sql = "SELECT course_id, course_name FROM enrolled WHERE roll_no = %s"
-#         cursor.execute(sql, (roll_no,))
-#         courses = cursor.fetchall()
-#     connection.close()
-
-#     # --- Second connection: classrooms for attendance ---
-#     connection2 = pymysql.connect(
-#         host='classiq.mysql.pythonanywhere-services.com',
-#         user='classiq',
-#         password='pythonanywhereman.com',
-#         database='classiq$classrooms',
-#         cursorclass=pymysql.cursors.DictCursor
-#     )
-
-#     for course in courses:
-#         table_name = f"classroom{course['course_id']}"  # e.g., classroom156
-
-#         try:
-#             with connection2.cursor() as cursor:
-#                 sql = f"""
-#                     SELECT c.current,
-#                           (SELECT total FROM {table_name} WHERE is_master = TRUE LIMIT 1) AS total
-#                     FROM {table_name} c
-#                     WHERE c.roll_no = %s
-#                     """
-#                 cursor.execute(sql, (roll_no,))
-#                 result = cursor.fetchone()
-
-#                 if result and result["total"] > 0:
-#                     attendance = (result["current"] / result["total"]) * 100
-#                 else:
-#                     attendance = 0.0
-#         except Exception as e:
-#             # if table doesn't exist or error occurs
-#             attendance = None
-
-#         course["attendance"] = round(attendance, 2) if attendance is not None else "N/A"
-
-#     connection2.close()
-
-#     # ✅ Now pass roll_no, courses with attendance to template
-#     return render_template("student_courses.html", roll_no=roll_no, courses=courses)
-
-
-#     # ---- Step 3: Send to template ----
-#     return render_template("student_courses.html", roll_no=roll_no, courses=courses)
-
-
-
-
-# @app.route('/xpage')
-# def xpage():
-#     # Ensure the user is logged in
-#     teacher_id = session.get('user_id')
-#     print(f"xpage user_id: {session.get('user_id')}")
-#     if not teacher_id:
-#         return redirect(url_for('login_faculty'))
-
-#     # Establish MySQL connection using pymysql
-#     try:
-#         connection = pymysql.connect(
-#             host='classiq.mysql.pythonanywhere-services.com',
-#             user='classiq',   # e.g., 'yourusername'
-#             password='pythonanywhereman.com',        # Replace with your MySQL password
-#             database='classiq$accounts',  # e.g., 'yourusername$courses'
-#             cursorclass=pymysql.cursors.DictCursor  # Ensures results are returned as dictionaries
-#         )
-#         with connection.cursor() as cursor:
-#             # Query the database for course_id and course_name matching the teacher_id
-#             query = "SELECT course_id, course_name FROM Courses WHERE teacher_id = %s"
-#             cursor.execute(query, (teacher_id,))
-#             courses = cursor.fetchall()
-
-#     except pymysql.MySQLError as err:
-#         print(f"Error: {err}")
-#         return "An error occurred while connecting to the database.", 500
-
-#     finally:
-#         # Close the connection
-#         if 'connection' in locals():
-#             connection.close()
-
-#     # Render the xpage.html template with the courses
-#     return render_template('xpage.html', courses=courses)
-
-# #----------xpage_sub-----------------------------------------------------------------------------
-# @app.route('/xpage_sub', methods=['GET', 'POST'])
-# def xpage_sub():
-#     if request.method == 'POST':
-#         course_id = request.form['course_id']
-#         course_name = request.form['course_name']
-#         teacher_id = session.get('user_id')   # assume user is logged in
-
-#         # --- First DB: check + insert into courses table ---
-#         conn1 = pymysql.connect(
-#             host="classiq.mysql.pythonanywhere-services.com",
-#             user="classiq",
-#             password="pythonanywhereman.com",
-#             database="classiq$accounts"
-#         )
-#         cur1 = conn1.cursor()
-
-#         # check if (course_id, teacher_id) already exists
-#         check_query = """
-#             SELECT 1 FROM Courses WHERE course_id = %s AND teacher_id = %s
-#         """
-#         cur1.execute(check_query, (course_id, teacher_id))
-#         exists = cur1.fetchone()
-
-#         if exists:
-#             cur1.close()
-#             conn1.close()
-#             return f"Course ID {course_id} is already assigned to you."
-
-#         # insert new record
-#         insert_query = """
-#             INSERT INTO Courses (course_id, course_name, teacher_id)
-#             VALUES (%s, %s, %s)
-#         """
-#         cur1.execute(insert_query, (course_id, course_name, teacher_id))
-#         conn1.commit()
-#         cur1.close()
-#         conn1.close()
-
-#         # --- Second DB: create a table for this course ---
-#         conn2 = pymysql.connect(
-#             host="classiq.mysql.pythonanywhere-services.com",
-#             user="classiq",
-#             password="pythonanywhereman.com",
-#             database="classiq$classrooms"
-#         )
-#         cur2 = conn2.cursor()
-
-#         table_name = f"classroom{course_id}"
-#         create_table_query = f"""
-#             CREATE TABLE IF NOT EXISTS `{table_name}` (
-#                 roll_no INT NOT NULL PRIMARY KEY,
-#                 student_name VARCHAR(100) DEFAULT NULL,
-#                 original VARCHAR(50) DEFAULT NULL,
-#                 total INT DEFAULT '0',
-#                 current INT DEFAULT '0',
-#                 is_master BOOLEAN NOT NULL DEFAULT FALSE
-#             )
-#         """
-
-
-#         cur2.execute(create_table_query)
-#         conn2.commit()
-#         cur2.close()
-#         conn2.close()
-#         print("xpage_sub: classroom creation successfull")
-#         return redirect(url_for('xpage'))
-
-#     else:
-#         return redirect(url_for('xpage'))
-
-# #teacher
-# @app.route('/classroom_viewer/<int:n>')
-# def classroom_viewer(n):
-#     table_name = f"classroom{n}"
-#     students = []
-
-#     try:
-#         # connect inside route
-#         connection = pymysql.connect(
-#             host="classiq.mysql.pythonanywhere-services.com",
-#             user="classiq",
-#             password="pythonanywhereman.com",
-#             database="classiq$classrooms",
-#             cursorclass=pymysql.cursors.DictCursor
-#         )
-#         with connection.cursor() as cursor:
-#             cursor.execute(f"SELECT student_name FROM {table_name}")
-#             result = cursor.fetchall()
-#             # extract just the student_name values into a list
-#             students = [row["student_name"] for row in result]
-#     except Exception as e:
-#         return f"Error: {e}"
-#     finally:
-#         if 'connection' in locals():
-#             connection.close()
-
-#     return render_template("classroom_viewer.html", students=students, table_name=table_name, classroom_no=n)
-
-
-# @app.route('/join_classroom/<int:n>', methods=['GET', 'POST'])
-# def join_classroom(n):
-#     #n is course_id
-#     if 'roll_no' not in session:
-#         return "You need to be logged in"
-#     roll_no=session.get('roll_no')
-
-
-#     conn1 = pymysql.connect(
-#             host="classiq.mysql.pythonanywhere-services.com",
-#             user="classiq",
-#             password="pythonanywhereman.com",
-#             database="classiq$accounts" #for enrolled and Courses
-#         )
-#     cur1 = conn1.cursor()
-
-#     cur1.execute("SELECT course_name FROM Courses WHERE course_id = %s", (n,))
-#     course_name=cur1.fetchone()[0]
-#     print(f"course name is {course_name}--------------------------------------------------------------------------")
-#     cur1.execute("SELECT name FROM student_info WHERE roll = %s", (roll_no,))
-#     student_name=cur1.fetchone()[0]
-#     print(f"student name is {student_name}----------------------------------------------------------------")
-#     insert_query = """
-#             INSERT INTO enrolled (roll_no, course_name, course_id)
-#             VALUES (%s, %s, %s)
-#         """
-#     cur1.execute(insert_query, (roll_no, course_name, n))
-#     conn1.commit()
-#     cur1.close()
-#     conn1.close()
-#     #------connection for classrooms
-#     conn2 = pymysql.connect(
-#             host="classiq.mysql.pythonanywhere-services.com",
-#             user="classiq",
-#             password="pythonanywhereman.com",
-#             database="classiq$classrooms"
-#         )
-#     cur2 = conn2.cursor()
-#     # insert new record
-#     try:
-#         insert_query = f"""
-#             INSERT INTO classroom{n} (roll_no, student_name, original, total, current, is_master)
-#             VALUES (%s, %s, %s, %s, %s, %s)
-#         """
-#         cur2.execute(insert_query, (roll_no, student_name, None, 0, 0, False))
-#         conn2.commit()  # don’t forget to commit the insert
-#     except Exception as e:
-#         print(f"Error inserting into classroom{n}: {e}------------------------------------------------------------")
-#         conn2.rollback()
-
-#     # Check how many rows are in the table
-#     sql_count = f"SELECT COUNT(*) AS cnt FROM classroom{n}"
-#     cur2.execute(sql_count)
-#     count_result = cur2.fetchone()
-#     print(f"{count_result}----------------------------")
-#     # If only 1 row exists, set is_master = TRUE for that row
-#     try:
-#         if count_result[0] == 1:
-#             sql_update_master = f"UPDATE classroom{n} SET is_master = TRUE LIMIT 1"
-#             cur2.execute(sql_update_master)
-#         conn2.commit()
-#     except Exception as e:
-#         print(f"Error while setting master row in classroom{n}: {e}")
-#         conn2.rollback()
-
-#     cur2.close()
-#     conn2.close()
-#     return redirect(url_for('student_dashboard'))
-
-# @app.route("/attendance/<int:course_id>")
-# def attendance(course_id):
-#     table_name = f"classroom{course_id}"
-
-#     try:
-#         conn = get_connection_classrooms()
-#         cur = conn.cursor(pymysql.cursors.DictCursor)
-
-#         # total from the master row
-#         cur.execute(f"SELECT `total` FROM `{table_name}` WHERE `is_master`=1 LIMIT 1;")
-#         row = cur.fetchone()
-#         total = row["total"] if row and row.get("total") is not None else 0
-#         # list of students: roll_no + current (ALL rows, including master row)
-#         cur.execute(f"SELECT `roll_no`, `current` FROM `{table_name}`;")
-#         attendance_data = cur.fetchall()  # [{roll_no:..., current:...}, ...]
-#         print(attendance_data)
-
-
-#     except Exception as e:
-#         # Optional: log the error for debugging
-#         app.logger.exception("Error loading attendance for %s", table_name)
-#         abort(500, description=str(e))
-#     finally:
-#         try:
-#             conn.close()
-#         except Exception:
-#             pass
-
-#     return render_template(
-#         "attendance.html",
-#         total=total,
-#         attendance=attendance_data,
-#         table_name=table_name,
-#         classroom_no=course_id
-#     )
-
-
-# @app.route('/take_attendance/<int:n>')
-# def take_attendance(n):
-#     table_name = f"classroom{n}"
-#     today_col = datetime.now().strftime("%d.%m.%y")
-
-#     img_dir = os.path.join(app.static_folder, "images")
-#     os.makedirs(img_dir, exist_ok=True)
-
-#     try:
-#         connection = pymysql.connect(
-#             host="classiq.mysql.pythonanywhere-services.com",
-#             user="classiq",
-#             password="pythonanywhereman.com",
-#             database="classiq$classrooms",
-#             cursorclass=pymysql.cursors.DictCursor
-#         )
-#         with connection.cursor() as cursor:
-#             # Check / create today's column
-#             cursor.execute(f"SHOW COLUMNS FROM {table_name} LIKE %s", (today_col,))
-#             if not cursor.fetchone():
-#                 cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN `{today_col}` VARCHAR(255)")
-#                 connection.commit()
-
-#             # --- generate exactly 4 hex codes, each 5 digits ---
-#             codes = [''.join(random.choices('0123456789abcdef', k=5)) for _ in range(4)]
-
-#             # Save original codes to "original" column of first row (comma-separated, no spaces)
-#             codes_str = ",".join(codes)
-#             cursor.execute(
-#                 f"UPDATE {table_name} SET original=%s, total=total+1 WHERE is_master = TRUE LIMIT 1",
-#                 (codes_str,)
-#             )
-#             connection.commit()
-
-#             # Create QR images and replace list entries with filenames (same-index replacement)
-#             for i, code in enumerate(codes):
-#                 img = qrcode.make(code)
-#                 fname = f"{code}_{''.join(random.choices(string.ascii_lowercase+string.digits, k=6))}.png"
-#                 img.save(os.path.join(img_dir, fname))
-#                 codes[i] = fname  # replace code with filename in the SAME list
-
-#     except Exception as e:
-#         return f"Error: {e}"
-#     finally:
-#         if 'connection' in locals():
-#             connection.close()
-
-#     # 'codes' now holds the filenames; pass to template
-#     return render_template("take_attendance.html", filenames=codes, table_name=table_name, today_col=today_col,course_id=n)
-
-#-------------------30-07-26-10:23s<
-
+# ==========================================
+# 1. PAGE ROUTE: Serve the Live QR Template
+# ==========================================
 @app.route('/take_attendance')
-def take_attendance():
-    return render_template("take_attendance.html")
+def live_qr_session():
+    if 'user_id' not in session:
+        return redirect('/login')
 
-#-------------------30-07-26-10:23e
+    class_id = request.args.get('class_id')
+    class_name = request.args.get('class_name', 'Attendance Session')
 
-# @app.route('/delete', methods=['POST'])
-# def delete_original_codes():
-#     print("Delete route triggered")  # Debug
-#     try:
-#         data = request.get_json()
-#         print("Received data:", data)  # Debug
-#         course_id = data.get('course_id')
-#         print("Course ID:", course_id)  # Debug
+    # Construct a simple dictionary from your existing session variables
+    # so your template can use `user.id`, `user.name`, etc.
+    user_data = {
+        'id': session.get('user_id'),
+        'name': session.get('name'),
+        'email': session.get('email')
+    }
 
-#         if not course_id:
-#             return jsonify({'success': False, 'error': 'Course ID not provided'}), 400
+    return render_template(
+        'qr_sequence.html',
+        user=user_data,
+        class_id=class_id,
+        class_name=class_name
+    )
 
-#         table_name = f"classroom{course_id}"
-#         print("Resolved table name:", table_name)
+# ==========================================
+# 2. API ROUTE: Generate & Send 4 QR Codes
+# ==========================================
+@app.route('/qr_sequence', methods=['POST'])
+def generate_qr_sequence():
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id')
+        class_id = data.get('class_id')
 
-#         connection = pymysql.connect(
-#             host="classiq.mysql.pythonanywhere-services.com",
-#             user="classiq",
-#             password="pythonanywhereman.com",
-#             database="classiq$classrooms",
-#             cursorclass=pymysql.cursors.DictCursor
-#         )
+        if not user_id or not class_id:
+            return jsonify({'error': 'Missing user_id or class_id'}), 400
 
-#         with connection:
-#             with connection.cursor() as cursor:
-#                 query = f"UPDATE {table_name} SET original = NULL WHERE is_master = 1 LIMIT 1"
-#                 print("Running query:", query)
-#                 cursor.execute(query)
-#                 rows_affected = cursor.rowcount
-#                 print("Rows affected:", rows_affected)
+        # --- 1. Database Insertion ---
+        now = datetime.now()
+        session_date = now.strftime('%Y-%m-%d')
+        start_time = now.strftime('%H:%M:%S')
 
-#                 connection.commit()
+        # Assuming the total duration of the 4 QR sequence is 60 seconds (adjust timedelta as needed)
+        qr_expires_at = now + timedelta(seconds=60)
+        qr_expires_at_str = qr_expires_at.strftime('%Y-%m-%d %H:%M:%S')
 
-#                 if rows_affected > 0:
-#                     return jsonify({
-#                         'success': True,
-#                         'message': f'Successfully cleared original codes for {table_name}',
-#                         'rows_affected': rows_affected
-#                     })
-#                 else:
-#                     return jsonify({
-#                         'success': False,
-#                         'message': f'No master row found in {table_name}'
-#                     })
+        # Insert row into class_sessions
+        result = db.session.execute(
+            text("""
+                INSERT INTO class_sessions (classroom_id, faculty_id, session_date, start_time, qr_expires_at)
+                VALUES (:cid, :fid, :s_date, :s_time, :expires)
+            """),
+            {
+                "cid": class_id,
+                "fid": user_id,
+                "s_date": session_date,
+                "s_time": start_time,
+                "expires": qr_expires_at_str
+            }
+        )
+        db.session.commit()
 
-#     except Exception as e:
-#         print("Error:", str(e))
-#         return jsonify({'success': False, 'error': str(e)}), 500
+        # Retrieve the auto-incremented ID of the new session
+        session_id = result.lastrowid
 
-# @app.route('/login_faculty', methods=['POST', 'GET'])
-# def login_faculty():
-#     return render_template('login_faculty2.html')
+        # --- 2. Create and Encode Dictionary ---
+        payload = {
+            "class_id": class_id,
+            "session_id": session_id,
+            "faculty_id": user_id,
+            "expires": qr_expires_at_str
+        }
 
-# @app.route('/login_facultyy', methods=['POST'])
-# def login_facultyy():
-#     print("This is facultyy")
-#     data = request.get_json()
-#     email = data.get('email')
-#     print(email)
-#     password = data.get('password')
-#     print(password)
-#     user = User.query.filter_by(email=email).first()
-#     if user and check_password_hash(user.password, password):
-#         print("entered if")
-#         session["user_id"] = user.id
-#         print(f"session user_id: {session.get('user_id')}")
-#         session["email"] = user.email
-#         return jsonify({"success": True, "message": "Login successful"})
-#     else:
-#         print("entered else")
-#         return jsonify({"success": False, "message": "Invalid email or password"}), 401
+        # Encode & sign the dictionary using your existing APP_SECRET_KEY
+        serializer = URLSafeSerializer(app.secret_key)
+        encoded_token = serializer.dumps(payload)
+
+        # --- 3. Split Token into 4 Chunks ---
+        chunk_size = math.ceil(len(encoded_token) / 4)
+        chunks = [encoded_token[i:i + chunk_size] for i in range(0, len(encoded_token), chunk_size)]
+
+        # Failsafe: Ensure exactly 4 elements exist just in case the string was unusually short
+        while len(chunks) < 4:
+            chunks.append("")
+
+        # --- 4. Generate QR Codes ---
+        qr_codes_payload = []
+
+        for step in range(1, 5):
+            # Extract the specific chunk for this step (Index is step - 1)
+            chunk_data = chunks[step - 1]
+
+            # Add metadata so the scanning app knows which chunk it just scanned
+            unique_token = f"STEP:{step}|CHUNK:{chunk_data}"
+
+            # Generate QR Code Image in Memory
+            qr = qrcode.QRCode(
+                version=1,
+                error_correction=qrcode.constants.ERROR_CORRECT_L,
+                box_size=10,
+                border=2,
+            )
+            qr.add_data(unique_token)
+            qr.make(fit=True)
+
+            img = qr.make_image(fill_color="black", back_color="white")
+
+            # Save image to bytes buffer and encode to Base64 string
+            buffered = io.BytesIO()
+            img.save(buffered, format="PNG")
+            img_base64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
+
+            # Add to response payload
+            qr_codes_payload.append({
+                "qr_base64": img_base64,
+                "qr_data": unique_token,
+                "step": step
+            })
+
+        return jsonify({"qr_codes": qr_codes_payload}), 200
+
+    except Exception as e:
+        db.session.rollback()  # Rollback session insertion if something fails
+        return jsonify({'error': str(e)}), 500
+
+
+
+# ==========================================
+# 1. PAGE ROUTE: Serve the Scanner Page
+# ==========================================
+@app.route('/scan_attendance')
+def scan_attendance():
+    if 'user_id' not in session:
+        return redirect('/login')
+
+    class_id = request.args.get('class_id')
+    class_name = request.args.get('class_name', 'Class')
+
+    user_data = {
+        'id': session.get('user_id'),
+        'first_name': session.get('first_name'),
+        'last_name': session.get('last_name'),
+    }
+
+    return render_template(
+        'scanner.html',
+        user=user_data,
+        class_id=class_id,
+        class_name=class_name
+    )
+
+
+# ==========================================
+# 2. API ROUTE: Process 4 Scanned QR Codes
+# ==========================================
+@app.route('/submit_scan_sequence', methods=['POST'])
+def submit_scan_sequence():
+    try:
+        data = request.get_json()
+        student_id = data.get('user_id')
+        class_id = data.get('class_id')
+        codes = data.get('codes', [])
+
+        if len(codes) != 4:
+            return jsonify({'error': 'Exactly 4 codes are required.'}), 400
+
+        # --- A. Reassemble the Token Chunks ---
+        chunks = [""] * 4
+
+        for code in codes:
+            if code.startswith("STEP:"):
+                parts = code.split("|CHUNK:")
+                if len(parts) == 2:
+                    step = int(parts[0].replace("STEP:", ""))
+                    chunk_data = parts[1]
+                    chunks[step - 1] = chunk_data
+
+        combined_token = "".join(chunks)
+
+        # --- B. Decode & Verify Token ---
+        serializer = URLSafeSerializer(app.secret_key)
+        try:
+            payload = serializer.loads(combined_token)
+        except BadSignature:
+            return jsonify({'error': 'Invalid or corrupted QR codes.'}), 400
+
+        if str(payload.get('class_id')) != str(class_id):
+            return jsonify({'error': 'This QR code does not match the selected class.'}), 400
+
+        session_id = payload.get('session_id')
+
+        # --- C. Check DB for Expiry ---
+        now = datetime.now()  # Fixed: using datetime.now() directly
+
+        session_record = db.session.execute(
+            text("SELECT qr_expires_at FROM class_sessions WHERE id = :sid AND classroom_id = :cid"),
+            {"sid": session_id, "cid": class_id}
+        ).fetchone()
+
+        if not session_record:
+            return jsonify({'error': 'Invalid session.'}), 404
+
+        qr_expires_at = session_record[0]
+
+        if now > qr_expires_at:
+            return jsonify({'error': 'QR code has expired. Please ask the faculty to generate a new session.'}), 400
+
+        # --- D. Prevent Duplicate Attendance ---
+        existing_attendance = db.session.execute(
+            text("SELECT * FROM attendance WHERE session_id = :sid AND student_id = :stid"),
+            {"sid": session_id, "stid": student_id}
+        ).fetchone()
+
+        if existing_attendance:
+            return jsonify({'message': 'Attendance already marked successfully!'}), 200
+
+        # --- E. Insert into Attendance Table ---
+        db.session.execute(
+            text("""
+                INSERT INTO attendance (session_id, student_id, status, scan_time)
+                VALUES (:sid, :stid, 'Present', :stime)
+            """),
+            {
+                "sid": session_id,
+                "stid": student_id,
+                "stime": now.strftime('%Y-%m-%d %H:%M:%S')
+            }
+        )
+        db.session.commit()
+
+        return jsonify({'message': 'Attendance marked successfully!'}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
 
 
 @app.route('/')
@@ -1072,56 +766,6 @@ def register():
 
 
 
-# @app.route('/register_student', methods=['POST'])
-# def register_student():
-#     data = request.json
-#     name = data.get('studentName')
-#     roll = data.get('rollNumber')
-#     dept = data.get('department')
-#     email = data.get('collegeEmail')
-#     password = data.get('password')
-#     phone = data.get('phoneNumber')   # not in table, will be ignored unless added
-
-#     # Check if student already exists (by email or roll)
-#     existing_student = StudentInfo.query.filter(
-#         (StudentInfo.college_email == email) | (StudentInfo.roll == roll)
-#     ).first()
-
-#     if existing_student:
-#         return jsonify({'message': 'Student already exists. Please log in.'}), 400
-
-#     # Hash password
-#     hashed_password = generate_password_hash(password)
-
-#     # Generate OTP
-#     otp = random.randint(100000, 999999)
-#     otp_store[email] = {
-#         'name': name,
-#         'roll': roll,
-#         'dept': dept,
-#         'password': hashed_password,
-#         'otp': otp
-#     }
-
-
-#     # Simulate sending OTP (replace with real email service later)
-#     print(f"OTP for {email}: {otp}")
-#     msg = Message(
-#         subject="OTP for ClassIQ",
-#         sender=("ClassIQ Support", app.config['MAIL_USERNAME']),
-#         recipients=[email]
-#     )
-#     msg.body = f"{otp} is your OTP for ClassIQ student account creation. Do not share with anyone."
-
-#     try:
-#         mail.send(msg)
-#         print("OTP sent to email!")
-#     except Exception as e:
-#         print(f"Error sending email {e}")
-
-#     return jsonify({'message': 'Registration successful. OTP sent to email.'}), 200
-
-
 
 @app.route('/resend-otp', methods=['POST'])
 def resend_otp():
@@ -1178,36 +822,6 @@ def verify_otp():
         return jsonify({
             'message': 'Invalid OTP. Please try again.'
         }), 400
-
-
-@app.route('/verify-otp_student', methods=['POST'])
-def verify_otp_student():
-    data = request.json
-    email = data.get('collegeEmail')
-    otp = int(data.get('otp'))
-
-    # Check if OTP matches
-    if email in otp_store and otp_store[email]['otp'] == otp:
-        student_data = otp_store[email]
-
-        # Create new StudentInfo entry
-        new_student = StudentInfo(
-            name=student_data['name'],
-            roll=student_data['roll'],
-            dept=student_data['dept'],
-            college_email=email,
-            password=student_data['password']
-        )
-
-        db.session.add(new_student)
-        db.session.commit()
-
-        # Remove from otp_store after successful verification
-        del otp_store[email]
-
-        return jsonify({'message': 'OTP verified successfully! Student registered.'}), 200
-    else:
-        return jsonify({'message': 'Invalid OTP. Please try again.'}), 400
 
 
 

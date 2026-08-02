@@ -255,12 +255,6 @@
     color: #fff;
   }
 
-
-
-
-
-
-
   /* ---------------- settings ---------------- */
   .settings-grid{display:grid;grid-template-columns:1fr;gap:20px;max-width:640px;}
   .settings-card{background:var(--card);border:1px solid var(--hair);border-radius:18px;padding:26px;}
@@ -378,12 +372,7 @@
     </div>
   </aside>
 
-
-
-
   {% include '_flash.html' %}
-
-
 
   <!-- ---------------- MAIN ---------------- -->
   <main class="main">
@@ -472,7 +461,8 @@
                 {% endif %}
 
                 <div class="row-actions">
-                  <button class="primary" onclick="showToast('Starting session for {{ c.name }}')">Start session</button>
+                  <!-- Pass the user.id, c.id, and c.name to the JS function -->
+                  <button class="primary" onclick="startClassSession('{{ user.id }}', '{{ c.id }}', '{{ c.name|escape }}')">Start session</button>
                   <button class="secondary" onclick="showToast('Opening roster for {{ c.name }}')">View roster</button>
                 </div>
               </div>
@@ -521,7 +511,7 @@
                 Faculty: {{ c.faculty_name }} {{ c.faculty_last_name if c.faculty_last_name else '' }}
               </div>
               <div class="row-actions">
-                <button class="primary" onclick="showToast('Scanning QR for {{ c.name }}')">Mark attendance</button>
+                <button class="primary" onclick="window.location.href='/scan_attendance?class_id={{ c.id }}&class_name={{ c.name|urlencode }}'">Mark attendance</button>
                 <button class="secondary" onclick="showToast('Opening history for {{ c.name }}')">View history</button>
               </div>
             </div>
@@ -619,8 +609,6 @@
   </div>
 </div>
 
-
-
 <!-- ---------------- DELETE CLASS MODAL ---------------- -->
 <div class="modal-overlay" id="deleteModal">
   <div class="modal">
@@ -643,9 +631,6 @@
     </form>
   </div>
 </div>
-
-
-
 
 <div class="toast" id="toast"><span class="dotok"></span><span id="toastMsg">Done</span></div>
 
@@ -678,13 +663,20 @@
     toastTimer = setTimeout(()=>t.classList.remove('show'), 2600);
   }
 
+  // Navigate to the dedicated session page (same design system). That page
+  // shows a "Start QR session?" confirmation and only then POSTs
+  // { user_id, class_id } to /start_session.
+  function startClassSession(userId, classId, className) {
+    const url = '/take_attendance?class_id=' + encodeURIComponent(classId)
+              + '&class_name=' + encodeURIComponent(className);
+    window.location.href = url;
+  }
 
   function openDeleteModal(classId, className) {
       document.getElementById('deleteClassroomId').value = classId;
       document.getElementById('deleteClassNameText').textContent = className;
       openModal('deleteModal');
   }
-
 
   // Dynamic greeting by time of day
   (function(){
