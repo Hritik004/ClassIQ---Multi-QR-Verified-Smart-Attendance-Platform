@@ -2,6 +2,19 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<script>
+  // Apply the theme saved from the dashboard before first paint.
+  (function(){
+    try{
+      var saved = localStorage.getItem('classiq-theme');
+      if (saved === 'dark' || saved === 'light') {
+        document.documentElement.setAttribute('data-theme', saved);
+      } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    }catch(e){}
+  })();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ClassIQ — Live QR Session</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,9 +32,41 @@
     --mint:#00c896;
     --amber:#f5a524;
     --rose:#f0556a;
+    --bg-1:rgba(139,92,246,0.12);
+    --bg-2:rgba(106,95,240,0.10);
+    --bg-base:#f7f6fb;
+    --field-bg:#fbfaff;
+    --overlay:rgba(33,31,54,0.45);
+    --surface-tint:rgba(33,31,54,0.05);
+    --icon-tint:rgba(33,31,54,0.06);
     --font-display:'Fraunces', serif;
     --font-body:'Inter', sans-serif;
     --font-mono:'JetBrains Mono', monospace;
+  }
+
+  html[data-theme="dark"]{
+    --violet-1:#5b8cff;
+    --violet-2:#7fa8ff;
+    --violet-3:#3d6ae8;
+    --ink:#eef1f8;
+    --muted:#8992ab;
+    --card:#161a24;
+    --hair:rgba(255,255,255,0.10);
+    --mint:#34e0a6;
+    --amber:#ffb84d;
+    --rose:#ff6b81;
+    --bg-1:rgba(91,140,255,0.14);
+    --bg-2:rgba(52,224,166,0.06);
+    --bg-base:#0a0c12;
+    --field-bg:#1c2029;
+    --overlay:rgba(2,3,7,0.78);
+    --surface-tint:rgba(255,255,255,0.06);
+    --icon-tint:rgba(255,255,255,0.09);
+  }
+  html[data-theme="dark"] .seq-card,
+  html[data-theme="dark"] #doneState,
+  html[data-theme="dark"] #errorState{
+    box-shadow:0 14px 34px rgba(0,0,0,0.45);
   }
 
   *{margin:0;padding:0;box-sizing:border-box;}
@@ -31,12 +76,13 @@
     color:var(--ink);
     min-height:100vh;
     background:
-      radial-gradient(1100px 600px at 90% -10%, rgba(139,92,246,0.12), transparent),
-      radial-gradient(900px 500px at -10% 30%, rgba(106,95,240,0.10), transparent),
-      #f7f6fb;
+      radial-gradient(1100px 600px at 90% -10%, var(--bg-1), transparent),
+      radial-gradient(900px 500px at -10% 30%, var(--bg-2), transparent),
+      var(--bg-base);
     line-height:1.55;
     -webkit-font-smoothing:antialiased;
     display:flex;flex-direction:column;
+    transition:background-color .25s ease, color .25s ease;
   }
   a{color:inherit;text-decoration:none;}
   button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
@@ -402,6 +448,13 @@
   }
 
   loadSequence();
+
+  // Keep in sync if the theme is changed on another tab (e.g. the dashboard).
+  window.addEventListener('storage', function(e){
+    if (e.key === 'classiq-theme' && (e.newValue === 'dark' || e.newValue === 'light')) {
+      document.documentElement.setAttribute('data-theme', e.newValue);
+    }
+  });
 </script>
 
 </body>
