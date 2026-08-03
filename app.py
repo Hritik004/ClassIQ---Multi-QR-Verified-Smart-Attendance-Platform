@@ -13,8 +13,7 @@ from sqlalchemy import text
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 import math
-from datetime import datetime, timedelta
-from sqlalchemy import text
+from datetime import timedelta
 from itsdangerous import URLSafeSerializer
 
 
@@ -957,6 +956,48 @@ def verify_otp():
         return jsonify({
             'message': 'Invalid OTP. Please try again.'
         }), 400
+
+
+
+@app.route('/api/session_attendees/<int:session_id>')
+def session_attendees(session_id):
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    user_id = session['user_id']
+
+    # Verify the user requesting this is the faculty member of the class
+    session_record = db.session.execute(
+        text("""
+            SELECT c.faculty_id
+            FROM class_sessions cs
+            JOIN classrooms c ON cs.classroom_id = c.id
+            WHERE cs.id = :sid
+        """),
+        {"sid": session_id}
+    ).fetchone()
+
+    if not session_record or str(session_record[0]) != str(user_id):
+        return jsonify({'error': 'Unauthorized or session not found'}), 403
+
+    # Fetch the students who attended this session
+    attendees = db.session.execute(
+        text("""
+            SELECT u.first_name, u.last_name, u.email
+            FROM attendance a
+            JOIN users u ON a.student_id = u.id
+            WHERE a.session_id = :sid AND a.status = 'Present'
+            ORDER BY u.first_name, u.last_name
+        """),
+        {"sid": session_id}
+    ).mappings().fetchall()
+
+    attendees_list = [{
+        'name': f"{row['first_name']} {row['last_name'] or ''}".strip(),
+        'email': row['email']
+    } for row in attendees]
+
+    return jsonify({'attendees': attendees_list}), 200
 
 
 

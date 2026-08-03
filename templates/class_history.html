@@ -225,6 +225,43 @@
     th,td{padding:12px 16px;}
     .table-header{padding:16px 18px;}
   }
+
+
+
+
+  /* ---------------- modal ---------------- */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(33,31,54,0.45); backdrop-filter: blur(3px);
+    display: none; align-items: center; justify-content: center; z-index: 100; padding: 20px;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--card); border-radius: 20px; padding: 28px; width: 100%; max-width: 500px;
+    box-shadow: 0 30px 70px rgba(33,31,54,0.25);
+  }
+  .modal .m-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .modal h3 { font-family: var(--font-display); font-size: 1.25rem; font-weight: 600; }
+  .modal .close { font-size: 18px; color: var(--muted); background: none; border: none; cursor: pointer; }
+  .modal .m-sub { color: var(--muted); font-size: 12.5px; margin-bottom: 20px; }
+  .modal .m-actions { display: flex; gap: 10px; margin-top: 22px; }
+  .modal .m-actions button {
+    flex: 1; padding: 12px 0; border-radius: 11px; font-size: 13.5px; font-weight: 600;
+    text-align: center; border: none; cursor: pointer;
+  }
+  .modal .m-actions .cancel { background: rgba(33,31,54,0.05); color: var(--ink); }
+
+  /* Make teacher rows appear clickable */
+  .teacher-row { cursor: pointer; transition: background .15s ease; }
+  .teacher-row:hover { background: rgba(106,95,240,0.05) !important; }
+
+
+
+
+
+
+
+
+
 </style>
 </head>
 <body>
@@ -298,23 +335,27 @@
         </thead>
         <tbody>
           {% for session in history %}
-          <tr>
-            <td class="session-id">#{{ session.session_id }}</td>
-            <td>{{ session.session_date }}</td>
-            <td>{{ session.start_time }}</td>
-
             {% if is_teacher %}
-              <td><strong>{{ session.total_present }}</strong> attendees</td>
+            <tr class="teacher-row" onclick="viewAttendees({{ session.session_id }}, '{{ session.session_date }}')">
             {% else %}
-              <td>
-                {% if session.my_status == 'Present' %}
-                  <span class="status-badge status-present">Present</span>
-                {% else %}
-                  <span class="status-badge status-absent">Absent</span>
-                {% endif %}
-              </td>
+            <tr>
             {% endif %}
-          </tr>
+              <td class="session-id">#{{ session.session_id }}</td>
+              <td>{{ session.session_date }}</td>
+              <td>{{ session.start_time }}</td>
+
+              {% if is_teacher %}
+                <td><strong>{{ session.total_present }}</strong> attendees</td>
+              {% else %}
+                <td>
+                  {% if session.my_status == 'Present' %}
+                    <span class="status-badge status-present">Present</span>
+                  {% else %}
+                    <span class="status-badge status-absent">Absent</span>
+                  {% endif %}
+                </td>
+              {% endif %}
+            </tr>
           {% endfor %}
         </tbody>
       </table>
@@ -336,6 +377,84 @@
       }
     });
   </script>
+
+
+  <!-- Attendee Modal -->
+  <div class="modal-overlay" id="attendeesModal">
+    <div class="modal">
+      <div class="m-head">
+        <h3>Session Attendees</h3>
+        <button type="button" class="close" onclick="closeModal('attendeesModal')">✕</button>
+      </div>
+      <div class="m-sub" id="attendeesSub">Session ID: --</div>
+
+      <div class="table-container" style="box-shadow: none; border: 1px solid var(--hair); max-height: 350px; overflow-y: auto;">
+        <table id="attendeesTable">
+          <thead style="position: sticky; top: 0; background: var(--card);">
+            <tr>
+              <th>Student Name</th>
+              <th>Email Address</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Populated dynamically via JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <div class="m-actions">
+        <button type="button" class="cancel" onclick="closeModal('attendeesModal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function openModal(id) { document.getElementById(id).classList.add('show'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+    // Close modal when clicking outside of it
+    document.querySelectorAll('.modal-overlay').forEach(ov => {
+      ov.addEventListener('click', e => {
+        if (e.target === ov) ov.classList.remove('show');
+      });
+    });
+
+    async function viewAttendees(sessionId, sessionDate) {
+      document.getElementById('attendeesSub').innerText = `Session on ${sessionDate} (ID: #${sessionId})`;
+      const tbody = document.querySelector('#attendeesTable tbody');
+
+      // Show loading state
+      tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;">Loading...</td></tr>';
+      openModal('attendeesModal');
+
+      try {
+        const response = await fetch(`/api/session_attendees/${sessionId}`);
+        const data = await response.json();
+
+        if (response.ok) {
+          tbody.innerHTML = '';
+          if (data.attendees.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="2" style="text-align:center; color: var(--muted);">No students were present.</td></tr>';
+          } else {
+            data.attendees.forEach(student => {
+              tbody.innerHTML += `<tr>
+                <td style="font-weight: 500;">${student.name}</td>
+                <td style="color: var(--muted);">${student.email}</td>
+              </tr>`;
+            });
+          }
+        } else {
+          tbody.innerHTML = `<tr><td colspan="2" style="text-align:center; color: var(--rose);">Error: ${data.error}</td></tr>`;
+        }
+      } catch (error) {
+        tbody.innerHTML = '<tr><td colspan="2" style="text-align:center; color: var(--rose);">Failed to load attendance data.</td></tr>';
+      }
+    }
+  </script>
+
+
+
+
 
 </body>
 </html>
